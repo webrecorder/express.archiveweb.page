@@ -1,0 +1,18 @@
+{
+  "name": "livewebproxy",
+  "version": "1.0.0",
+  "main": "index.js",
+  "license": "MIT",
+  "dependencies": {
+    "lit-element": "^2.4.0",
+    "webpack": "^5.33.2",
+    "webpack-cli": "^4.6.0",
+    "webpack-dev-server": "^3.11.2"
+  },
+  "scripts": {
+    "build": "webpack --mode production",
+    "build-dev": "webpack --mode development",
+    "start-dev": "webpack serve --mode development --port 10001 --output-path ${PWD}/dist",
+    "lint": "eslint ./src webpack.config.js"
+  }
+}

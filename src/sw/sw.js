@@ -20,7 +20,7 @@ class ExtAPI extends API
     return {
       ...super.routes,
       "downloadPages": "c/:coll/dl",
-      "updatePage": ["c/:coll/page", "POST"]
+      "pageTitle": ["c/:coll/pageTitle", "POST"]
     };
   }
 
@@ -44,7 +44,7 @@ class ExtAPI extends API
       return dl.download();
     }
 
-    case "updatePage":
+    case "pageTitle":
       return await this.updatePageTitle(params.coll, request);
 
     default:
@@ -66,13 +66,18 @@ class ExtAPI extends API
     //await coll.store.db.init();
 
     const result = await coll.store.lookupUrl(url, ts);
-    if (url !== result.url || ts !== result.ts) {
+    // drop to second precision for comparison
+    const roundedTs = Math.floor(result.ts / 1000) * 1000;
+    if (url !== result.url || ts !== roundedTs) {
       return {error: "no_exact_match"};
     }
 
-    const id = coll.store.newPageId();
-
-    await coll.store.addPages([{url, ts, title, id}]);
+    const page = await coll.store.db.getFromIndex("pages", "url", url);
+    if (!page) {
+      return {error: "page_not_found"};
+    }
+    page.title = title;
+    await coll.store.db.put("pages", page);
 
     return {"added": true};
   }

@@ -1,6 +1,7 @@
 import { ArchiveDB } from "@webrecorder/wabac/src/archivedb";
 import { LiveAccess } from "@webrecorder/wabac/src/remoteproxy";
 import { SWCollections } from "@webrecorder/wabac/src/swmain";
+import { randomId } from "../../../../core/wabac.js/src/utils";
 
 
 // ===========================================================================
@@ -14,19 +15,25 @@ class RecProxy extends ArchiveDB
     this.collLoader = collLoader;
 
     this.liveProxy = new LiveAccess(config, true);
+
+    this.pageId = randomId();
+    this.isNew = true;
   }
 
   async getResource(request, prefix, event) {
     const response = await this.liveProxy.getResource(request, prefix);
 
-    this.doRecord(event.clientId, event.resultingClientId, response, request.request);
+    let req = request.request;
+    if (req.origRequest) {
+      req = req.origRequest;
+    }
+
+    this.doRecord(event.clientId || event.resultingClientId, response, req);
 
     return response;
   }
 
-  async doRecord(pageId, newPageId, response, request) {
-    pageId = pageId || newPageId;
-
+  async doRecord(clientId, response, request) {
     const url = response.url;
     const ts = response.date.getTime();
 
@@ -39,6 +46,8 @@ class RecProxy extends ArchiveDB
     const reqHeaders = Object.fromEntries(request.headers.entries());
 
     const payload = new Uint8Array(await response.clonedResponse.arrayBuffer());
+
+    const pageId = this.pageId;
 
     const data = {
       url,
@@ -56,11 +65,10 @@ class RecProxy extends ArchiveDB
 
     await this.collLoader.updateSize(this.name, payload.length, payload.length);
 
-    // handled via separate API call instead to get title
-    // if (this.isNew) {
-    //   await this.db.addPages([{id: pageId, url, ts}]);
-    //   this.isNew = false;
-    // }
+    if (this.isNew && (status < 301 || status >= 400)) {
+      await this.addPages([{id: pageId, url, ts}]);
+      this.isNew = false;
+    }
   }
 }
 

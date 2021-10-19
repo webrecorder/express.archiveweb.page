@@ -78,7 +78,7 @@ class ResumePassThrough extends PassThrough
 class Downloader
 {
   constructor({coll, format = "wacz", filename = null, pageList = null, signer = null}) {
-    this.db = coll.store.db;
+    this.db = coll.store;
     this.pageList = pageList;
     this.collId = coll.name;
     this.metadata = coll.config.metadata;

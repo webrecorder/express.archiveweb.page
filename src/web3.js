@@ -5,8 +5,9 @@ const TOKEN = __TOKEN__;
 
 export class Web3Uploader
 {
-  constructor() {
-    this.web3 = new Web3Storage({token: TOKEN});
+  constructor(apikey) {
+    const token = apikey || TOKEN;
+    this.web3 = new Web3Storage({token});
     this.rwpPrefix = "https://replayweb.page/";
   }
 

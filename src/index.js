@@ -71,9 +71,14 @@ export default class LiveWebProxy extends LitElement
     window.addEventListener("beforeunload", () => {
       this.deleteColl(this.collId);
     });
+
+    setInterval(() => this.updateSize(), 5000);
   }
 
   async updateSize() {
+    if (!this.collId) {
+      return;
+    }
     const resp = await fetch(`w/api/c/${this.collId}`);
     const json = await resp.json();
     this.size = json.size;
@@ -182,6 +187,13 @@ export default class LiveWebProxy extends LitElement
             <a href="w/api/c/${this.collId}/dl?pages=all&format=wacz" class="border p-2 rounded bg-blue-300">Download Archive</a>
           </div>`}
         </div>
+
+        <details class="w-full">
+          <summary>Advanced Options</summary>
+          <label for="apikey" class="pt-4 flex">
+            <input class="mb-4 text-sm w-full" id="apikey" type="text" placeholder="Enter a custom web3.storage API key here"></input>
+          </label>
+        </details>
       </form>
 
       ${this.collReady && this.iframeUrl ? html`
@@ -253,7 +265,11 @@ export default class LiveWebProxy extends LitElement
 
   async onUpload() {
     this.uploading = true;
-    const storage = new Web3Uploader();
+    
+    const apiKeyInput = this.renderRoot.querySelector("#apikey");
+    const apiKey = apiKeyInput && apiKeyInput.value;
+
+    const storage = new Web3Uploader(apiKey);
     const cid = await storage.uploadWACZ(`w/api/c/${this.collId}/dl?pages=all&format=wacz`);
     this.cidLink = `https://dweb.link/ipfs/${cid}/`;
     this.uploading = false;

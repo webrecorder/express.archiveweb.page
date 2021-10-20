@@ -159,7 +159,8 @@ export default class LiveWebProxy extends LitElement
 
   render() {
     return html`
-      <div class="flex justify-center text-2xl">DWeb Archive Page</div>
+      <div class="flex absolute mt-1 right-0 text-xs">A project by&nbsp;<a target="_blank" href="https://webrecorder.net/"><img class="h-4" src="./assets/wrLogo.png"></div></a>
+      <div class="flex justify-center text-2xl">Archive Web Page to Decentralized Web</div>
       
       <form @submit="${this.onUpdateUrlTs}" class="grid grid-cols-1 gap-3">
         <input class="rounded w-full" id="url" type="text" placeholder="Enter URL To load" .value="${this.url}">

@@ -62,6 +62,7 @@ export default class LiveWebProxy extends LitElement
       if (m) {
         this.ts = m[1] || "";
         this.url = m[2] || "https://example.com/";
+        this.isLive = !this.ts;
       }
     };
 
@@ -140,7 +141,7 @@ export default class LiveWebProxy extends LitElement
     this.collReady = false;
     this.loading = true;
 
-    const p = new Promise((resolve) => {
+    new Promise((resolve) => {
       this.collAwait = resolve;
     }).then(() => this.collReady = true);
 
@@ -185,7 +186,7 @@ export default class LiveWebProxy extends LitElement
           </div>
           <div class="mb-2" id="status">
             Size: <b>${prettyBytes(this.size || 0)}</b>
-            <a href="w/api/c/${this.collId}/dl?pages=all&format=wacz" class="border p-2 rounded bg-blue-300">Download Archive</a>
+            <a href="w/api/c/${this.collId}/dl?pages=all&format=wacz" target="_blank" class="border p-2 rounded bg-blue-300">Download Archive</a>
           </div>`}
         </div>
 
@@ -202,7 +203,7 @@ export default class LiveWebProxy extends LitElement
          allow-popups allow-presentation allow-scripts allow-same-origin"
       class="border border-solid border-black" src="${this.iframeUrl}"
       @load="${this.onFrameLoad}" allow="autoplay 'self'; fullscreen" allowfullscreen
-      ></iframe>` : ``}
+      ></iframe>` : ""}
     `;
   }
 
@@ -304,6 +305,6 @@ function tsToDateMin(ts) {
     ts.substring(12, 14));
 
   return datestr;
-};
+}
 
 customElements.define("live-web-proxy", LiveWebProxy);

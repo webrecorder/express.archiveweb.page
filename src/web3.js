@@ -1,6 +1,6 @@
 import { Web3Storage } from "web3.storage";
 
-
+// eslint-disable-next-line no-undef
 const TOKEN = __TOKEN__;
 
 export class Web3Uploader
@@ -8,7 +8,7 @@ export class Web3Uploader
   constructor(apikey) {
     const token = apikey || TOKEN;
     this.web3 = new Web3Storage({token});
-    this.rwpPrefix = "https://replayweb.page/";
+    this.rwpPrefix = "https://cdn.jsdelivr.net/npm/replaywebpage@1.5.4/";
   }
 
   async uploadWACZ(waczUrl) {
@@ -38,8 +38,8 @@ export class Web3Uploader
   <replay-app-main source="./webarchive.wacz"></replay-app-main>
 </body>
 </html>`;
-  const blob = new Blob([index], {type : 'text/html'});
-  return new NamedStream("index.html", blob.stream());
+    const blob = new Blob([index], {type : "text/html"});
+    return new NamedStream("index.html", blob.stream());
   }
 
   async fetchFile(name, url) {

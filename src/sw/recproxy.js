@@ -69,7 +69,6 @@ class RecProxy extends ArchiveDB
 
       if (postToGetUrl(data)) {
         url = new URL(data.url).href;
-        console.log("URL", url);
       }
     }
 
@@ -92,7 +91,7 @@ class RecProxy extends ArchiveDB
 
     // don't add page for redirects
     if (this.isNew && (status < 301 || status >= 400)) {
-      console.log("Referrer", referrer);
+      console.log("Page", url, "Referrer", referrer);
       await this.addPages([{id: pageId, url, ts}]);
       this.isNew = false;
     }

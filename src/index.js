@@ -143,7 +143,7 @@ export default class LiveWebProxy extends LitElement
 
     new Promise((resolve) => {
       this.collAwait = resolve;
-    }).then(() => this.collReady = true);
+    }).then(() => {this.collReady = true; this.hashUpdate = false; });
 
     if (!navigator.serviceWorker.controller) {
       navigator.serviceWorker.addEventListener("controllerchange", () => {

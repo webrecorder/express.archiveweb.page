@@ -8,13 +8,13 @@ export class Web3Uploader
   constructor(apikey) {
     const token = apikey || TOKEN;
     this.web3 = new Web3Storage({token});
-    this.rwpPrefix = "https://cdn.jsdelivr.net/npm/replaywebpage@1.5.4/";
+    this.rwpPrefix = "https://cdn.jsdelivr.net/npm/replaywebpage@1.5.5/";
   }
 
-  async uploadWACZ(waczUrl) {
+  async uploadWACZ(url, waczUrl) {
     const files = [
-      this.createIndex(),
-      await this.fetchFile("sw.js", this.rwpPrefix + "sw.js"),
+      this.createIndex(url),
+      await this.fetchFile("replay/sw.js", this.rwpPrefix + "sw.js"),
       await this.fetchFile("ui.js", this.rwpPrefix + "ui.js"),
       await this.fetchFile("webarchive.wacz", waczUrl),
     ];
@@ -24,7 +24,7 @@ export class Web3Uploader
     return cid;
   }
 
-  createIndex() {
+  createIndex(url) {
     const index = `\
 <!doctype html>
 <html class="no-overflow">
@@ -33,11 +33,21 @@ export class Web3Uploader
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <script src="./ui.js"></script>
+  <style>
+    html, body, replay-web-page {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      margin: 0px;
+      padding: 0px;
+    }
+  </style>
 </head>
 <body>
-  <replay-app-main source="./webarchive.wacz"></replay-app-main>
+  <replay-web-page url="${url}" embed="default" source="./webarchive.wacz"></replay-web-page>
 </body>
-</html>`;
+</html>
+`;
     const blob = new Blob([index], {type : "text/html"});
     return new NamedStream("index.html", blob.stream());
   }

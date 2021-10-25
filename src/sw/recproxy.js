@@ -34,7 +34,7 @@ class RecProxy extends ArchiveDB
 
     const response = await this.liveProxy.getResource(request, prefix);
 
-    this.cookie = response.headers.get("x-wabac-preset-cookie");
+    //this.cookie = response.headers.get("x-wabac-preset-cookie");
 
     this.doRecord(event.clientId || event.resultingClientId, response, req);
 
@@ -90,8 +90,8 @@ class RecProxy extends ArchiveDB
     await this.collLoader.updateSize(this.name, payload.length, payload.length);
 
     // don't add page for redirects
-    if (this.isNew && (status < 301 || status >= 400)) {
-      console.log("Page", url, "Referrer", referrer);
+    if (this.isNew && (status < 301 || status >= 400) && request.mode === "navigate") {
+      //console.log("Page", url, "Referrer", referrer);
       await this.addPages([{id: pageId, url, ts}]);
       this.isNew = false;
     }

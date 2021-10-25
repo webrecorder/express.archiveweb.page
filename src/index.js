@@ -272,7 +272,7 @@ export default class LiveWebProxy extends LitElement
     const apiKey = apiKeyInput && apiKeyInput.value;
 
     const storage = new Web3Uploader(apiKey);
-    const cid = await storage.uploadWACZ(`w/api/c/${this.collId}/dl?pages=all&format=wacz`);
+    const cid = await storage.uploadWACZ(this.url, `w/api/c/${this.collId}/dl?pages=all&format=wacz`);
     this.cidLink = `https://dweb.link/ipfs/${cid}/`;
     this.uploading = false;
   }

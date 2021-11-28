@@ -250,7 +250,7 @@ export default class LiveWebProxy extends LitElement
 
         if (this.lastTs !== ts && this.lastUrl !== url) {
           const req = {url, ts, title};
-          console.log(title, ts, url);
+          //console.log(title, ts, url);
 
           if (title && title !== url) {
             fetch(`w/api/c/${this.collId}/pageTitle`, {method: "POST", body: JSON.stringify(req)});
@@ -272,7 +272,7 @@ export default class LiveWebProxy extends LitElement
     const apiKey = apiKeyInput && apiKeyInput.value;
 
     const storage = new Web3Uploader(apiKey);
-    const cid = await storage.uploadWACZ(this.url, `w/api/c/${this.collId}/dl?pages=all&format=wacz`);
+    const cid = await storage.uploadWACZ(this.url, this.lastTs, `w/api/c/${this.collId}/dl?pages=all&format=wacz`);
     this.cidLink = `https://dweb.link/ipfs/${cid}/`;
     this.uploading = false;
   }

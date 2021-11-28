@@ -47,6 +47,13 @@ class RecProxy extends ArchiveDB
 
     const mime = (response.headers.get("content-type") || "").split(";")[0];
 
+    const range = response.headers.get("content-range");
+
+    if (range && !range.startsWith("bytes 0-")) {
+      console.log("skip range request: " + range);
+      return;
+    }
+
     const status = response.status;
     const statusText = response.statusText;
 
@@ -54,6 +61,14 @@ class RecProxy extends ArchiveDB
     const reqHeaders = Object.fromEntries(request.headers.entries());
 
     const payload = new Uint8Array(await response.clonedResponse.arrayBuffer());
+
+    if (range) {
+      const expectedRange = `bytes 0-${payload.length - 1}/${payload.length}`;
+      if (range !== expectedRange) {
+        console.log("skip range request: " + range);
+        return;
+      }
+    }
 
     const pageId = this.pageId;
 

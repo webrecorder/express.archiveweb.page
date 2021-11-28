@@ -8,12 +8,14 @@ export class Web3Uploader
   constructor(apikey) {
     const token = apikey || TOKEN;
     this.web3 = new Web3Storage({token});
-    this.rwpPrefix = "https://cdn.jsdelivr.net/npm/replaywebpage@1.5.5/";
+    //this.rwpPrefix = "https://cdn.jsdelivr.net/npm/replaywebpage@1.5.5/";
+    //this.rwpPrefix = "http://localhost:9990/";
+    this.rwpPrefix = "https://replayweb.page/";
   }
 
-  async uploadWACZ(url, waczUrl) {
+  async uploadWACZ(url, ts, waczUrl) {
     const files = [
-      this.createIndex(url),
+      this.createIndex(url, ts),
       await this.fetchFile("replay/sw.js", this.rwpPrefix + "sw.js"),
       await this.fetchFile("ui.js", this.rwpPrefix + "ui.js"),
       await this.fetchFile("webarchive.wacz", waczUrl),
@@ -24,7 +26,8 @@ export class Web3Uploader
     return cid;
   }
 
-  createIndex(url) {
+  createIndex(url, ts) {
+    console.log(ts);
     const index = `\
 <!doctype html>
 <html class="no-overflow">
@@ -44,7 +47,7 @@ export class Web3Uploader
   </style>
 </head>
 <body>
-  <replay-web-page url="${url}" embed="default" source="./webarchive.wacz"></replay-web-page>
+  <replay-web-page deepLink="true" noSandbox="true" url="${url}" ${ts ? `ts="${ts}"` : ""} embed="default" source="./webarchive.wacz"></replay-web-page>
 </body>
 </html>
 `;

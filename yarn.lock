@@ -942,6 +942,27 @@
   resolved "https://registry.yarnpkg.com/@webpack-cli/serve/-/serve-1.6.0.tgz#2c275aa05c895eccebbfc34cfb223c6e8bd591a2"
   integrity sha512-ZkVeqEmRpBV2GHvjjUZqEai2PpUbuq8Bqd//vEYsp63J8WyexI8ppCqVS3Zs0QADf6aWuPdU+0XsPI647PVlQA==
 
+"@webrecorder/archivewebpage@github:webrecorder/archiveweb.page":
+  version "0.7.5"
+  resolved "https://codeload.github.com/webrecorder/archiveweb.page/tar.gz/da12a78eb5df600be9aa8d1c1365f44524a41048"
+  dependencies:
+    "@fortawesome/fontawesome-free" "^5.13.0"
+    "@webrecorder/wabac" "^2.10.0-beta.0"
+    browsertrix-behaviors "^0.2.4"
+    btoa "^1.2.1"
+    bulma "^0.9.3"
+    hash-wasm "^4.9.0"
+    http-status-codes "^2.1.4"
+    ipfs-core "^0.10.8"
+    ipfs-http-client "^52.0.5"
+    jszip "^3.7.1"
+    keyword-mark-element "^0.1.2"
+    node-fetch "2.6.2"
+    pretty-bytes "^5.6.0"
+    replaywebpage "^1.5.6"
+    uuid "^8.3.2"
+    warcio "^1.5.0"
+
 "@webrecorder/archivewebpage@github:webrecorder/archiveweb.page#reusable-lib-setup":
   version "0.7.5"
   resolved "https://codeload.github.com/webrecorder/archiveweb.page/tar.gz/971adf3c5e3db23de059ce4f4e97692656a59c29"
@@ -5843,7 +5864,7 @@ register-service-worker@^1.7.2:
   resolved "https://registry.yarnpkg.com/register-service-worker/-/register-service-worker-1.7.2.tgz#6516983e1ef790a98c4225af1216bc80941a4bd2"
   integrity sha512-CiD3ZSanZqcMPRhtfct5K9f7i3OLCcBBWsJjLh1gW9RO/nS94sVzY59iS+fgYBOBqaBpf4EzfqUF3j9IG+xo8A==
 
-"replaywebpage@github:webrecorder/replayweb.page":
+replaywebpage@^1.5.6, "replaywebpage@github:webrecorder/replayweb.page":
   version "1.5.6"
   resolved "https://codeload.github.com/webrecorder/replayweb.page/tar.gz/b60a0ee7d3f3e10667bf27213b5e459d0bf8fbb1"
   dependencies:

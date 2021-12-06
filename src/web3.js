@@ -8,9 +8,7 @@ export class Web3Uploader
   constructor(apikey) {
     const token = apikey || TOKEN;
     this.web3 = new Web3Storage({token});
-    //this.rwpPrefix = "https://cdn.jsdelivr.net/npm/replaywebpage@1.5.5/";
-    //this.rwpPrefix = "http://localhost:9990/";
-    this.rwpPrefix = "https://replayweb.page/";
+    this.rwpPrefix = "https://cdn.jsdelivr.net/npm/replaywebpage@1.5.6/";
   }
 
   async uploadWACZ(url, ts, waczUrl) {

@@ -1,7 +1,7 @@
 import "tailwindcss/tailwind.css";
+import "./shoelace";
 
 import { LitElement, html } from "lit";
-import prettyBytes from "pretty-bytes";
 import { Web3Uploader } from "./web3";
 
 export default class LiveWebProxy extends LitElement
@@ -63,6 +63,7 @@ export default class LiveWebProxy extends LitElement
         this.ts = m[1] || "";
         this.url = m[2] || "https://example.com/";
         this.isLive = !this.ts;
+        this.initCollection();
       }
     };
 
@@ -85,13 +86,13 @@ export default class LiveWebProxy extends LitElement
     this.size = json.size;
   }
 
-  updated(changedProps) {
-    if (changedProps.has("url") || changedProps.has("ts")) {
-      if (this.url && (this.url !== this.actualUrl || changedProps.has("ts"))) {
-        this.initCollection();
-      }
-    }
-  }
+  // updated(changedProps) {
+  //   if (changedProps.has("url") || changedProps.has("ts")) {
+  //     if (this.url && (this.url !== this.actualUrl || changedProps.has("ts"))) {
+  //       this.initCollection();
+  //     }
+  //   }
+  // }
 
   async initSW() {
     const scope = "./";
@@ -160,43 +161,85 @@ export default class LiveWebProxy extends LitElement
 
   render() {
     return html`
+      <style>
+      :root {
+        --sl-color-primary-600: var(--sl-color-primary-500);
+        --sl-color-success-600: var(--sl-color-success-500);
+      }
+      </style>
       <div class="flex absolute mt-1 right-0 text-xs">A project by&nbsp;<a target="_blank" href="https://webrecorder.net/"><img class="h-4" src="./assets/wrLogo.png"></div></a>
-      <div class="flex justify-center m-2 text-2xl">Archive Web Page to Decentralized Web</div>
-      
-      <form @submit="${this.onUpdateUrlTs}" class="grid grid-cols-1 gap-3">
-        <input class="rounded w-full" id="url" type="text" placeholder="Enter URL To load" .value="${this.url}">
-        <div>
-          <label for="live">
-            <input id="live" name="islive" class="mr-1" type="radio" ?checked="${this.isLive}" @click="${() => this.isLive = true}">Live
-          </label>
-          <label for="ia" class="pt-4">
-            <input id="ia" name="islive" class="mr-1 ml-4" type="radio" ?checked="${!this.isLive}" @click="${() => this.isLive = false}">Archived at: (via Internet Archive)
-            <input id="ts" class="text-sm rounded rounded-md" type="text" .value="${tsToDateMin(this.ts || "19960101")}" placeholder="YYYY-MM-DD hh:mm:ss" ?disabled="${this.isLive}"></input>
-          </label>
-          <button type="submit" class="border rounded p-2 bg-blue-300">Load</button>
+      <div class="flex justify-center m-2 text-2xl">Archive a Single Web Page Directly in your Browser!</div>
+
+      <sl-form @sl-submit="${this.onUpdateUrlTs}" class="grid grid-cols-1 gap-3 mb-4">
+        <div class="flex">
+          ${this.loading ? html`
+          <sl-button style="width: 48px" class="ml-1" type="default" loading="default"></sl-button>
+          ` : html`
+          <sl-button @click="${this.onRefresh}" style="width: 48px" class="mr-1" type="default">
+            <sl-icon class="text-2xl align-middle" name="arrow-clockwise"></sl-icon>
+          </sl-button>`}
+
+          <sl-input class="rounded w-full" id="url" placeholder="Enter URL To load" .value="${this.url}">
+          </sl-input>
         </div>
 
-        <div class="flex items-center justify-between">
-          ${this.loading ? html`Loading...` : html`
-          <div class="mb-2">Sharable Link:
-          &nbsp;${this.cidLink ? html`
-          <a class="text-blue-800" target="_blank" href="${this.cidLink}">${this.cidLink}</a>` : html`
-          <button class="border rounded bg-green-300 p-2" @click="${this.onUpload}" ?disabled="${this.uploading}">${this.uploading ? "Uploading..." : "Upload to Web3.Storage (IPFS + Filecoin)"}</button>
-          `}
-          </div>
-          <div class="mb-2" id="status">
-            Size: <b>${prettyBytes(this.size || 0)}</b>
-            <a href="w/api/c/${this.collId}/dl?pages=all&format=wacz" target="_blank" class="border p-2 rounded bg-blue-300">Download Archive</a>
-          </div>`}
-        </div>
+        <div class="flex flex-wrap mt-2">
+          <sl-radio-group class="flex" fieldset label="Load From:">
+            <sl-radio class="mr-1" ?checked="${this.isLive}"
+            @sl-change="${() => this.isLive = true}">Live Web Page</sl-radio>
 
-        <details class="w-full">
-          <summary>Advanced Options</summary>
-          <label for="apikey" class="pt-4 flex">
-            <input class="mb-4 text-sm w-full" id="apikey" type="text" placeholder="Enter a custom web3.storage API key here"></input>
-          </label>
-        </details>
-      </form>
+            <div class="flex items-baseline">
+              <sl-radio class="mr-1" ?checked="${!this.isLive}"
+              @sl-change="${() => this.isLive = false}">Archived on:</sl-radio>
+
+              <div class="flex flex-col mt-2">
+                <sl-input id="ts" class="text-sm rounded rounded-md"
+                .value="${tsToDateMin(this.ts || "19960101")}" placeholder="YYYY-MM-DD hh:mm:ss"
+                ?disabled="${this.isLive}"></sl-input>
+                <span class="text-xs">(via Internet Archive)</span>
+              </div>
+            </div>
+          </sl-radio-group>
+
+
+          ${this.loading ? html`
+            <span class="flex items-center ml-4 mt-4">
+              <sl-spinner class="text-4xl mr-4"></sl-spinner>Loading, Please wait...
+            </span>` : html`
+
+            <sl-radio-group class="flex" fieldset style="max-width: 500px" label="Share to Web3 (via web3.storage)">             
+              <div class="mb-2">Sharable Link:
+                &nbsp;${this.cidLink ? html`
+                  <a class="text-blue-800 break-all" target="_blank" href="${this.cidLink}">${this.cidLink}</a>` : html`
+
+                  ${this.uploading ? html`
+                  <sl-button disabled type="success">
+                  <sl-spinner style="--indicator-color: currentColor"></sl-spinner>
+                  Uploading...</sl-button>` : html`
+                  <sl-button type="success" @click="${this.onUpload}">Share via IPFS</sl-button>
+                  `}
+
+                `}</div>
+
+                <details class="w-full">
+                  <summary>Advanced Options</summary>
+                  <sl-input size="small" class="" id="apikey" type="text"
+                  placeholder="Custom web3.storage API key"></sl-input>
+                </details>
+
+              </div>
+            </sl-radio-group>
+
+            <sl-radio-group class="flex" fieldset label="Archive Info">
+
+              <sl-button type="primary" href="w/api/c/${this.collId}/dl?pages=all&format=wacz" target="_blank">
+              Download Archive</sl-button>
+
+              <div class="mt-2">Size Loaded: <b><sl-format-bytes value="${this.size || 0}"></sl-format-bytes></b></div>
+            </sl-radio-group>`}
+
+        </div>
+      </sl-form>
 
       ${this.collReady && this.iframeUrl ? html`
       <iframe sandbox="allow-downloads allow-modals allow-orientation-lock allow-pointer-lock\
@@ -207,16 +250,34 @@ export default class LiveWebProxy extends LitElement
     `;
   }
 
-  onUpdateUrlTs(event) {
-    event.preventDefault();
+  onUpdateUrlTs(event, always) {
+    if (event) {
+      event.preventDefault();
+    }
 
-    this.url = this.renderRoot.querySelector("#url").value;
+    const url = this.renderRoot.querySelector("#url").value;
+    let ts;
 
     if (this.isLive) {
-      this.ts = "";
+      ts = "";
     } else {
-      this.ts = this.renderRoot.querySelector("#ts").value.replace(/[^\d]/g, "");
+      ts = this.renderRoot.querySelector("#ts").value.replace(/[^\d]/g, "");
     }
+
+    // determine if an update is needed
+    // if url is set and either url or ts have changed or always is set
+    const changed = (url && (always || url !== this.actualUrl || ts !== this.ts));
+
+    this.ts = ts;
+    this.url = url;
+
+    if (changed) {
+      this.initCollection();
+    }
+  }
+
+  onRefresh() {
+    this.onUpdateUrlTs(null, true);
   }
 
   onFrameLoad(event) {

@@ -1,7 +1,8 @@
 /*eslint-env node */
-
+const path = require("path");
 const webpack = require("webpack");
 const TerserPlugin = require("terser-webpack-plugin");
+const CopyPlugin = require("copy-webpack-plugin");
 
 const PACKAGE = require("./package.json");
 const AWP_PACKAGE = require("./node_modules/@webrecorder/archivewebpage/package.json");
@@ -48,6 +49,16 @@ module.exports = {
       process: "process/browser.js",
       Buffer: ["buffer", "Buffer"],
     }),
+
+    new CopyPlugin({
+      patterns: [
+        // Copy Shoelace assets to dist/shoelace
+        {
+          from: 'node_modules/@shoelace-style/shoelace/dist/assets',
+          to: 'shoelace/assets'
+        }
+      ]
+    })
   ],
 
 

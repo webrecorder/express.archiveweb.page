@@ -210,13 +210,15 @@ export default class LiveWebProxy extends LitElement
             <sl-radio-group class="flex" fieldset style="max-width: 500px" label="Share to Web3 (via web3.storage)">             
               <div class="mb-2">Sharable Link:
                 &nbsp;${this.cidLink ? html`
-                  <a class="text-blue-800 break-all" target="_blank" href="${this.cidLink}">${this.cidLink}</a>` : html`
+                  <a class="text-blue-800 font-bold break-all" target="_blank" href="${this.cidLink}">${this.cidLink}</a>` : html`
 
                   ${this.uploading ? html`
                   <sl-button disabled type="success">
                   <sl-spinner style="--indicator-color: currentColor"></sl-spinner>
                   Uploading...</sl-button>` : html`
-                  <sl-button type="success" @click="${this.onUpload}">Share via IPFS</sl-button>
+                  <sl-button type="success" @click="${this.onUpload}">
+                  <sl-icon class="text-lg mr-1" name="share-fill"></sl-icon>
+                  Share via IPFS</sl-button>
                   `}
 
                 `}</div>
@@ -231,10 +233,8 @@ export default class LiveWebProxy extends LitElement
             </sl-radio-group>
 
             <sl-radio-group class="flex" fieldset label="Archive Info">
-
               <sl-button type="primary" href="w/api/c/${this.collId}/dl?pages=all&format=wacz" target="_blank">
-              Download Archive</sl-button>
-
+              <sl-icon class="text-lg mr-1" name="file-earmark-arrow-down"></sl-icon>Download Archive</sl-button>
               <div class="mt-2">Size Loaded: <b><sl-format-bytes value="${this.size || 0}"></sl-format-bytes></b></div>
             </sl-radio-group>`}
 

@@ -1761,7 +1761,7 @@ var zr,Ur;null==Ir||Ir(kr,Er),(null!==(Ye=globalThis.litHtmlVersions)&&void 0!==
               <sl-spinner class="text-4xl mr-4"></sl-spinner>Loading, Please wait...
             </span>`:gr`
 
-            <sl-radio-group class="flex" fieldset style="max-width: 500px" label="Share to Web3 (via web3.storage)">             
+            <sl-radio-group class="flex" fieldset style="max-width: 500px" label="Share to IPFS (using web3.storage)">
               <div class="mb-2">Sharable Link:
                 &nbsp;${this.cidLink?gr`
                   <a class="text-blue-800 font-bold break-all" target="_blank" href="${this.cidLink}">${this.cidLink}</a>`:gr`
@@ -1772,7 +1772,7 @@ var zr,Ur;null==Ir||Ir(kr,Er),(null!==(Ye=globalThis.litHtmlVersions)&&void 0!==
                   Uploading...</sl-button>`:gr`
                   <sl-button type="success" @click="${this.onUpload}">
                   <sl-icon class="text-lg mr-1" name="share-fill"></sl-icon>
-                  Share via IPFS</sl-button>
+                  Share to IPFS</sl-button>
                   `}
 
                 `}</div>

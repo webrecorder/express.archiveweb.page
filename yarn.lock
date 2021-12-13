@@ -1014,9 +1014,9 @@
 
 "@webrecorder/wabac@github:webrecorder/wabac.js":
   version "2.10.0"
-  resolved "https://codeload.github.com/webrecorder/wabac.js/tar.gz/754fbae9bb3c2d39e06d7a79ad30a644c2a24e78"
+  resolved "https://codeload.github.com/webrecorder/wabac.js/tar.gz/da53085edce1107ba278a3b60bf4644ded3df98a"
   dependencies:
-    "@webrecorder/wombat" "^3.3.5"
+    "@webrecorder/wombat" "^3.3.6"
     brotli "github:foliojs/brotli.js"
     buffer "^6.0.3"
     fast-xml-parser "^3.19.0"
@@ -1040,6 +1040,13 @@
   integrity sha512-mj/TtahJjhRf/TSyO0Nr8nwCH373Fyd5mqtqkTlacMsSMZdAfp/t7bY2aVr1rFqEb7KC+U7xkVn6fmDUecLZng==
   dependencies:
     warcio "^1.4.6"
+
+"@webrecorder/wombat@^3.3.6":
+  version "3.3.6"
+  resolved "https://registry.yarnpkg.com/@webrecorder/wombat/-/wombat-3.3.6.tgz#adaf63afa934511afc082bb38d4662dc821ccf8a"
+  integrity sha512-l3OrPr2qLHbzMIQ3OT+DzhRf9Tbyy33LxJtCcAcYTWGzkUkr0uSXLiRyC7qS7b32wcwNm72junL8fiT+OS8hOQ==
+  dependencies:
+    warcio "^1.5.0"
 
 "@xtuc/ieee754@^1.2.0":
   version "1.2.0"

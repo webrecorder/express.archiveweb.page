@@ -319,6 +319,8 @@ export default class LiveWebProxy extends LitElement
 
           this.lastTs = ts;
           this.lastUrl = url;
+
+          this.url = url;
         }
 
         this.updateSize();

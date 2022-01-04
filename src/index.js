@@ -199,6 +199,10 @@ export default class LiveWebProxy extends LitElement
         height: 500px;
       }
 
+      .search-result::part(content) {
+        height: 500px;
+      }
+
       </style>
       <div class="flex absolute mt-1 right-0 text-xs">A project by&nbsp;<a target="_blank" href="https://webrecorder.net/"><img class="h-4" src="./assets/wrLogo.png"></div></a>
       <div class="flex justify-center m-2 text-2xl">Archive a Single Web Page Directly in your Browser!</div>
@@ -295,7 +299,7 @@ export default class LiveWebProxy extends LitElement
               ${this.loading ? html`
               <sl-button style="width: 48px" class="ml-1" type="default" loading="default"></sl-button>
               ` : html`
-              <sl-button @click="${this.onRefresh}" style="width: 48px" class="mr-1" type="default">
+              <sl-button @click="${this.onUpdateSearch}" style="width: 48px" class="mr-1" type="default">
                 <sl-icon class="text-2xl align-middle" name="arrow-clockwise"></sl-icon>
               </sl-button>`}
 
@@ -321,13 +325,13 @@ export default class LiveWebProxy extends LitElement
             <div class="text-lg">${this.searchResults && this.searchResults.length} result(s)</div>
 
             ${this.searchResults && this.searchResults.map(result => html`
-            <sl-hide-details class="mb-2" @sl-show="${(e) => this.onShowResult(result, true)}" @sl-hide="${(e) => this.onShowResult(result, false)}">
+            <sl-details class="mb-2 search-result" @sl-show="${(e) => this.onShowResult(result, true)}" @sl-hide="${(e) => this.onShowResult(result, false)}">
               <div slot="summary" class="flex flex-col">
                 <span><a target="_blank" href="https://dweb.link/ipfs/${result.cid}/#${toParams({url: result.url})}">${result.url} <sl-icon class="ml-1" name="box-arrow-up-right"></sl-icon></a></span>
                 <span class="text-gray-400">${new Date(result.key.split(" ")[1]).toLocaleString()}</span>
               </div>
               ${result.show ? html`<replay-web-page source="https://dweb.link/ipfs/${result.cid}/webarchive.wacz" url="${result.url}"></replay-web-page>` : ``}
-            </sl-hide-details>
+            </sl-details>
             `)}`}
           </div>
         </sl-tab-panel>
@@ -555,25 +559,4 @@ function tsToDateMin(ts) {
   return datestr;
 }
 
-
-class SLHideDetails extends SlDetails
-{
-  static get styles() {
-    return [SlDetails.styles, css`
-      .details__body {
-        display: none;
-      }
-
-      .details--open > .details__body {
-        display: initial;
-      }
-
-      .details__content {
-        height: 500px;
-      }
-    `];
-  }
-}
-
 customElements.define("live-web-proxy", LiveWebProxy);
-customElements.define("sl-hide-details", SLHideDetails);

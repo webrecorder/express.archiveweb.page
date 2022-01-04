@@ -2,9 +2,11 @@ import "tailwindcss/tailwind.css";
 import "./shoelace";
 
 import { LitElement, html, css } from "lit";
-import { classMap } from 'lit/directives/class-map.js';
 import { Web3Uploader } from "./web3";
 import { SlDetails } from "@shoelace-style/shoelace";
+
+//import { create as IPFSCreate } from "ipfs-http-client";
+import { create as IPFSCreate } from "ipfs-core";
 
 export default class LiveWebProxy extends LitElement
 {
@@ -13,6 +15,10 @@ export default class LiveWebProxy extends LitElement
     this.archivePrefix = "https://web.archive.org/web/";
     this.proxyPrefix = "https://oldweb.today/proxy/";
     this.apiPrefix = "https://pywb-dev.webrecorder.net";
+    //this.ipfsAPI = "https://dweb.link";
+
+    this.ipfs = null;
+    this.urlindex = null;
 
     this.isLive = true;
 
@@ -27,6 +33,7 @@ export default class LiveWebProxy extends LitElement
 
     this.searchMode = false;
     this.searchMatchType = "exact";
+    this.searchIPFSLoad = false;
   }
 
   static get properties() {
@@ -56,7 +63,8 @@ export default class LiveWebProxy extends LitElement
 
       searchMode: { type: String },
       searchResults: { type: Array },
-      searchMatchType: { type: String }
+      searchMatchType: { type: String },
+      searchIPFSLoad: { type: Boolean }
     };
   }
 
@@ -303,6 +311,9 @@ export default class LiveWebProxy extends LitElement
           </sl-form>
 
           <div class="flex flex-col">
+            <div class="mb-4">
+            <sl-switch ?checked="${this.searchIPFSLoad}" @sl-change="${this.onToggleSearchIPFSLoad}">Load directly via IPFS</sl-switch>
+            </div>
             ${this.loading ? html`
             <span class="flex items-center ml-4 mt-4">
               <sl-spinner class="text-4xl mr-4"></sl-spinner>Loading, Please wait...
@@ -310,12 +321,13 @@ export default class LiveWebProxy extends LitElement
             <div class="text-lg">${this.searchResults && this.searchResults.length} result(s)</div>
 
             ${this.searchResults && this.searchResults.map(result => html`
-            <sl-card class="mb-2">
-              <div class="flex flex-col">
+            <sl-hide-details class="mb-2" @sl-show="${(e) => this.onShowResult(result, true)}" @sl-hide="${(e) => this.onShowResult(result, false)}">
+              <div slot="summary" class="flex flex-col">
                 <span><a target="_blank" href="https://dweb.link/ipfs/${result.cid}/#${toParams({url: result.url})}">${result.url} <sl-icon class="ml-1" name="box-arrow-up-right"></sl-icon></a></span>
                 <span class="text-gray-400">${new Date(result.key.split(" ")[1]).toLocaleString()}</span>
               </div>
-            </sl-card>
+              ${result.show ? html`<replay-web-page source="https://dweb.link/ipfs/${result.cid}/webarchive.wacz" url="${result.url}"></replay-web-page>` : ``}
+            </sl-hide-details>
             `)}`}
           </div>
         </sl-tab-panel>
@@ -468,11 +480,47 @@ export default class LiveWebProxy extends LitElement
 
     window.location.hash = `#search?${params}`;
 
-    const resp = await fetch(`${this.apiPrefix}/query?${params}`);
-    const results = await resp.json();
-    this.searchResults = results;
+    if (!this.searchIPFSLoad) {
+      this.searchResults = await this.getAPIResults(params);
+    } else {
+      this.searchResults = await this.getIPFSResults({url: this.url, matchType: this.searchMatchType});
+    }
 
     this.loading = false;
+  }
+
+  onToggleSearchIPFSLoad(event) {
+    this.searchIPFSLoad = event.currentTarget.checked;
+    this.doSearch();
+  }
+
+  async getAPIResults(params) {
+    const resp = await fetch(`${this.apiPrefix}/query?${params}`);
+    const results = await resp.json();
+    return results;
+  }
+
+  // remote IPFS based index lookup
+  async getIPFSResults(params) {
+    const resp = await fetch(`${this.apiPrefix}/root`);
+    const {root} = await resp.json();
+
+    //const ipfs = await IPFSCreate(this.ipfsAPI);
+    if (!this.urlindex) {
+      this.ipfs = await IPFSCreate();
+    }
+
+    if (!this.urlindex) {
+      const { storage, URLIndex } = window.urlindex;
+
+      const store = new storage.IPFSReadOnlyStorage(this.ipfs);
+
+      this.urlindex = new URLIndex(store);
+
+      await this.urlindex.loadExisting(root);
+    }
+
+    return await this.urlindex.query(params);
   }
 }
 

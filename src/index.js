@@ -1,8 +1,10 @@
 import "tailwindcss/tailwind.css";
 import "./shoelace";
 
-import { LitElement, html } from "lit";
+import { LitElement, html, css } from "lit";
+import { classMap } from 'lit/directives/class-map.js';
 import { Web3Uploader } from "./web3";
+import { SlDetails } from "@shoelace-style/shoelace";
 
 export default class LiveWebProxy extends LitElement
 {
@@ -10,6 +12,7 @@ export default class LiveWebProxy extends LitElement
     super();
     this.archivePrefix = "https://web.archive.org/web/";
     this.proxyPrefix = "https://oldweb.today/proxy/";
+    this.apiPrefix = "https://pywb-dev.webrecorder.net";
 
     this.isLive = true;
 
@@ -21,6 +24,9 @@ export default class LiveWebProxy extends LitElement
     this.collAwait = null;
 
     this.hashUpdate = false;
+
+    this.searchMode = false;
+    this.searchMatchType = "exact";
   }
 
   static get properties() {
@@ -44,7 +50,13 @@ export default class LiveWebProxy extends LitElement
       cidLink: { type: String },
 
       archivePrefix: { type: String },
-      proxyPrefix: { type: String }
+      proxyPrefix: { type: String },
+
+      apiPrefix: {type: String },
+
+      searchMode: { type: String },
+      searchResults: { type: Array },
+      searchMatchType: { type: String }
     };
   }
 
@@ -59,7 +71,20 @@ export default class LiveWebProxy extends LitElement
         return;
       }
       const m = window.location.hash.slice(1).match(/\/?(?:([\d]+)\/)?(.*)/);
-      if (m) {
+      
+      if (!m) {
+        return;
+      }
+
+      if (m[2].startsWith("search?")) {
+        this.searchMode = true;
+        const params = new URLSearchParams(m[2].slice("search?".length));
+        this.url = params.get("url");
+        this.searchMatchType = params.get("matchType") || "exact";
+        this.doSearch();
+      } else {
+
+        this.searchMode = false;
         this.ts = m[1] || "";
         this.url = m[2] || "https://example.com/";
         this.isLive = !this.ts;
@@ -86,14 +111,6 @@ export default class LiveWebProxy extends LitElement
     this.size = json.size;
   }
 
-  // updated(changedProps) {
-  //   if (changedProps.has("url") || changedProps.has("ts")) {
-  //     if (this.url && (this.url !== this.actualUrl || changedProps.has("ts"))) {
-  //       this.initCollection();
-  //     }
-  //   }
-  // }
-
   async initSW() {
     const scope = "./";
 
@@ -107,6 +124,9 @@ export default class LiveWebProxy extends LitElement
   }
 
   initCollection() {
+    if (this.searchMode) {
+      return;
+    }
     const baseUrl = new URL(window.location);
     baseUrl.hash = "";
 
@@ -166,88 +186,147 @@ export default class LiveWebProxy extends LitElement
         --sl-color-primary-600: var(--sl-color-primary-500);
         --sl-color-success-600: var(--sl-color-success-500);
       }
+
+      replay-web-page {
+        height: 500px;
+      }
+
       </style>
       <div class="flex absolute mt-1 right-0 text-xs">A project by&nbsp;<a target="_blank" href="https://webrecorder.net/"><img class="h-4" src="./assets/wrLogo.png"></div></a>
       <div class="flex justify-center m-2 text-2xl">Archive a Single Web Page Directly in your Browser!</div>
 
-      <sl-form @sl-submit="${this.onUpdateUrlTs}" class="grid grid-cols-1 gap-3 mb-4">
-        <div class="flex">
-          ${this.loading ? html`
-          <sl-button style="width: 48px" class="ml-1" type="default" loading="default"></sl-button>
-          ` : html`
-          <sl-button @click="${this.onRefresh}" style="width: 48px" class="mr-1" type="default">
-            <sl-icon class="text-2xl align-middle" name="arrow-clockwise"></sl-icon>
-          </sl-button>`}
+      <sl-tab-group @sl-tab-show="${this.onShowTab}">
+        <sl-tab slot="nav" .active="${!this.searchMode}" panel="create">Create New</sl-tab>
+        <sl-tab slot="nav" .active="${this.searchMode}" panel="search">Search Archives</sl-tab>
 
-          <sl-input class="rounded w-full" id="url" placeholder="Enter URL To load" .value="${this.url}">
-          </sl-input>
-        </div>
+        <sl-tab-panel name="create" .active="${!this.searchMode}">
+          <sl-form @sl-submit="${this.onUpdateUrlTs}" class="grid grid-cols-1 gap-3 mb-4">
+            <div class="flex">
+              ${this.loading ? html`
+              <sl-button style="width: 48px" class="ml-1" type="default" loading="default"></sl-button>
+              ` : html`
+              <sl-button @click="${this.onRefresh}" style="width: 48px" class="mr-1" type="default">
+                <sl-icon class="text-2xl align-middle" name="arrow-clockwise"></sl-icon>
+              </sl-button>`}
 
-        <div class="flex flex-wrap mt-2">
-          <sl-radio-group class="flex" fieldset label="Load From:">
-            <sl-radio class="mr-1" ?checked="${this.isLive}"
-            @sl-change="${() => this.isLive = true}">Live Web Page</sl-radio>
-
-            <div class="flex items-baseline">
-              <sl-radio class="mr-1" ?checked="${!this.isLive}"
-              @sl-change="${() => this.isLive = false}">Archived on:</sl-radio>
-
-              <div class="flex flex-col mt-2">
-                <sl-input id="ts" class="text-sm rounded rounded-md"
-                .value="${tsToDateMin(this.ts || "19960101")}" placeholder="YYYY-MM-DD hh:mm:ss"
-                ?disabled="${this.isLive}"></sl-input>
-                <span class="text-xs">(via Internet Archive)</span>
-              </div>
+              <sl-input class="rounded w-full" id="url" placeholder="Enter URL To load" .value="${this.url}">
+              </sl-input>
             </div>
-          </sl-radio-group>
+
+            <div class="flex flex-wrap mt-2">
+              <sl-radio-group class="flex" fieldset label="Load From:">
+                <sl-radio class="mr-1" ?checked="${this.isLive}"
+                @sl-change="${() => this.isLive = true}">Live Web Page</sl-radio>
+
+                <div class="flex items-baseline">
+                  <sl-radio class="mr-1" ?checked="${!this.isLive}"
+                  @sl-change="${() => this.isLive = false}">Archived on:</sl-radio>
+
+                  <div class="flex flex-col mt-2">
+                    <sl-input id="ts" class="text-sm rounded rounded-md"
+                    .value="${tsToDateMin(this.ts || "19960101")}" placeholder="YYYY-MM-DD hh:mm:ss"
+                    ?disabled="${this.isLive}"></sl-input>
+                    <span class="text-xs">(via Internet Archive)</span>
+                  </div>
+                </div>
+              </sl-radio-group>
 
 
-          ${this.loading ? html`
+              ${this.loading ? html`
+                <span class="flex items-center ml-4 mt-4">
+                  <sl-spinner class="text-4xl mr-4"></sl-spinner>Loading, Please wait...
+                </span>` : html`
+
+                <sl-radio-group class="flex" fieldset style="max-width: 500px" label="Share to IPFS (using web3.storage)">
+                  <div class="mb-2">Sharable Link:
+                    &nbsp;${this.cidLink ? html`
+                      <a class="text-blue-800 font-bold break-all" target="_blank" href="${this.cidLink}">${this.cidLink}</a>` : html`
+
+                      ${this.uploading ? html`
+                      <sl-button disabled type="success">
+                      <sl-spinner style="--indicator-color: currentColor"></sl-spinner>
+                      Uploading...</sl-button>` : html`
+                      <sl-button type="success" @click="${this.onUpload}">
+                      <sl-icon class="text-lg mr-1" name="share-fill"></sl-icon>
+                      Share to IPFS</sl-button>
+                      `}
+
+                    `}</div>
+
+                    <details class="w-full">
+                      <summary>Advanced Options</summary>
+                      <sl-input size="small" class="" id="apikey" type="text"
+                      placeholder="Custom web3.storage API key"></sl-input>
+                    </details>
+
+                  </div>
+                </sl-radio-group>
+
+                <sl-radio-group class="flex" fieldset label="Archive Info">
+                  <sl-button type="primary" href="w/api/c/${this.collId}/dl?pages=all&format=wacz" target="_blank">
+                  <sl-icon class="text-lg mr-1" name="file-earmark-arrow-down"></sl-icon>Download Archive</sl-button>
+                  <div class="mt-2">Size Loaded: <b><sl-format-bytes value="${this.size || 0}"></sl-format-bytes></b></div>
+                </sl-radio-group>`}
+
+            </div>
+          </sl-form>
+
+          ${this.collReady && this.iframeUrl ? html`
+          <iframe sandbox="allow-downloads allow-modals allow-orientation-lock allow-pointer-lock\
+            allow-popups allow-presentation allow-scripts allow-same-origin"
+          class="border border-solid border-black" src="${this.iframeUrl}"
+          @load="${this.onFrameLoad}" allow="autoplay 'self'; fullscreen" allowfullscreen
+          ></iframe>` : ""}
+        </sl-tab-panel>
+
+
+
+        <sl-tab-panel name="search" .active="${this.searchMode}">
+          <sl-form @sl-submit="${this.onUpdateSearch}" class="grid grid-cols-1 gap-3 mb-4">
+            <div class="flex">
+              ${this.loading ? html`
+              <sl-button style="width: 48px" class="ml-1" type="default" loading="default"></sl-button>
+              ` : html`
+              <sl-button @click="${this.onRefresh}" style="width: 48px" class="mr-1" type="default">
+                <sl-icon class="text-2xl align-middle" name="arrow-clockwise"></sl-icon>
+              </sl-button>`}
+
+              <sl-select class="mr-1" id="matchType" value="${this.searchMatchType}" @sl-change="${this.onChangeMatchType}">
+                <sl-menu-item value="exact">Exact</sl-menu-item>
+                <sl-menu-item value="prefix">Prefix</sl-menu-item>
+                <sl-menu-item value="raw-prefix">TLD</sl-menu-item>
+              </sl-select>
+
+              <sl-input class="rounded w-full" id="searchUrl" placeholder="Search by URL" .value="${this.url}">
+              </sl-input>
+            </div>
+          </sl-form>
+
+          <div class="flex flex-col">
+            ${this.loading ? html`
             <span class="flex items-center ml-4 mt-4">
               <sl-spinner class="text-4xl mr-4"></sl-spinner>Loading, Please wait...
             </span>` : html`
+            <div class="text-lg">${this.searchResults && this.searchResults.length} result(s)</div>
 
-            <sl-radio-group class="flex" fieldset style="max-width: 500px" label="Share to IPFS (using web3.storage)">
-              <div class="mb-2">Sharable Link:
-                &nbsp;${this.cidLink ? html`
-                  <a class="text-blue-800 font-bold break-all" target="_blank" href="${this.cidLink}">${this.cidLink}</a>` : html`
-
-                  ${this.uploading ? html`
-                  <sl-button disabled type="success">
-                  <sl-spinner style="--indicator-color: currentColor"></sl-spinner>
-                  Uploading...</sl-button>` : html`
-                  <sl-button type="success" @click="${this.onUpload}">
-                  <sl-icon class="text-lg mr-1" name="share-fill"></sl-icon>
-                  Share to IPFS</sl-button>
-                  `}
-
-                `}</div>
-
-                <details class="w-full">
-                  <summary>Advanced Options</summary>
-                  <sl-input size="small" class="" id="apikey" type="text"
-                  placeholder="Custom web3.storage API key"></sl-input>
-                </details>
-
+            ${this.searchResults && this.searchResults.map(result => html`
+            <sl-card class="mb-2">
+              <div class="flex flex-col">
+                <span><a target="_blank" href="https://dweb.link/ipfs/${result.cid}/#${toParams({url: result.url})}">${result.url} <sl-icon class="ml-1" name="box-arrow-up-right"></sl-icon></a></span>
+                <span class="text-gray-400">${new Date(result.key.split(" ")[1]).toLocaleString()}</span>
               </div>
-            </sl-radio-group>
+            </sl-card>
+            `)}`}
+          </div>
+        </sl-tab-panel>
 
-            <sl-radio-group class="flex" fieldset label="Archive Info">
-              <sl-button type="primary" href="w/api/c/${this.collId}/dl?pages=all&format=wacz" target="_blank">
-              <sl-icon class="text-lg mr-1" name="file-earmark-arrow-down"></sl-icon>Download Archive</sl-button>
-              <div class="mt-2">Size Loaded: <b><sl-format-bytes value="${this.size || 0}"></sl-format-bytes></b></div>
-            </sl-radio-group>`}
-
-        </div>
-      </sl-form>
-
-      ${this.collReady && this.iframeUrl ? html`
-      <iframe sandbox="allow-downloads allow-modals allow-orientation-lock allow-pointer-lock\
-         allow-popups allow-presentation allow-scripts allow-same-origin"
-      class="border border-solid border-black" src="${this.iframeUrl}"
-      @load="${this.onFrameLoad}" allow="autoplay 'self'; fullscreen" allowfullscreen
-      ></iframe>` : ""}
+      </sl-tab-group>
     `;
+  }
+
+  onShowResult(result, value) {
+    result.show = value;
+    this.searchResults = [...this.searchResults];
   }
 
   onUpdateUrlTs(event, always) {
@@ -337,6 +416,13 @@ export default class LiveWebProxy extends LitElement
     const storage = new Web3Uploader(apiKey);
     const cid = await storage.uploadWACZ(this.url, this.lastTs, `w/api/c/${this.collId}/dl?pages=all&format=wacz`);
     this.cidLink = `https://dweb.link/ipfs/${cid}/`;
+
+    await fetch(`${this.apiPrefix}/addq`, {
+      method: "POST",
+      body: JSON.stringify({cid}),
+      headers: {"Content-Type": "application/json"}
+    });
+
     this.uploading = false;
   }
 
@@ -345,6 +431,57 @@ export default class LiveWebProxy extends LitElement
       await fetch(`w/api/c/${collId}`, {method: "DELETE"});
     }
   }
+
+  onShowTab(event) {
+    const name = event.detail.name;
+    this.searchMode = (name === "search");
+    if (this.searchMode) {
+      this.doSearch();
+    } else {
+      this.initCollection();
+    }
+  }
+
+  onUpdateSearch() {
+    const url = this.renderRoot.querySelector("#searchUrl").value;
+    this.url = url;
+
+    this.doSearch();
+  }
+
+  onChangeMatchType(event) {
+    this.searchMatchType = event.currentTarget.value;
+
+    this.doSearch();
+  }
+
+  async doSearch() {
+    if (!this.url) {
+      this.url = "https://example.com/";
+    }
+
+    this.loading = true;
+
+    const params = new URLSearchParams();
+    params.set("url", this.url);
+    params.set("matchType", this.searchMatchType);
+
+    window.location.hash = `#search?${params}`;
+
+    const resp = await fetch(`${this.apiPrefix}/query?${params}`);
+    const results = await resp.json();
+    this.searchResults = results;
+
+    this.loading = false;
+  }
+}
+
+function toParams(obj) {
+  const params = new URLSearchParams();
+  for (const [k, v] of Object.entries(obj)) {
+    params.set(k, v);
+  }
+  return params.toString();
 }
 
 function randomId() {
@@ -370,4 +507,25 @@ function tsToDateMin(ts) {
   return datestr;
 }
 
+
+class SLHideDetails extends SlDetails
+{
+  static get styles() {
+    return [SlDetails.styles, css`
+      .details__body {
+        display: none;
+      }
+
+      .details--open > .details__body {
+        display: initial;
+      }
+
+      .details__content {
+        height: 500px;
+      }
+    `];
+  }
+}
+
 customElements.define("live-web-proxy", LiveWebProxy);
+customElements.define("sl-hide-details", SLHideDetails);

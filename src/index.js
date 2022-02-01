@@ -1,12 +1,8 @@
 import "tailwindcss/tailwind.css";
 import "./shoelace";
 
-import { LitElement, html, css } from "lit";
-import { Web3Uploader } from "./web3";
-import { SlDetails } from "@shoelace-style/shoelace";
-
-//import { create as IPFSCreate } from "ipfs-http-client";
-import { create as IPFSCreate } from "ipfs-core";
+import { LitElement, html } from "lit";
+import { Web3Uploader, URLIndexWrapper } from "./web3";
 
 export default class LiveWebProxy extends LitElement
 {
@@ -14,16 +10,14 @@ export default class LiveWebProxy extends LitElement
     super();
     this.archivePrefix = "https://web.archive.org/web/";
     this.proxyPrefix = "https://oldweb.today/proxy/";
-    this.apiPrefix = "https://pywb-dev.webrecorder.net";
-    //this.ipfsAPI = "https://dweb.link";
 
-    this.ipfs = null;
-    this.urlindex = null;
+    this.index = null;
 
     this.isLive = true;
 
     this.lastUrl = null;
     this.lastTs = null;
+    this.lastTitle = null;
 
     this.size = 0;
     this.collReady = false;
@@ -33,7 +27,7 @@ export default class LiveWebProxy extends LitElement
 
     this.searchMode = false;
     this.searchMatchType = "exact";
-    this.searchIPFSLoad = false;
+    this.searchRoot = window.localStorage.getItem("indexRoot") || null;
   }
 
   static get properties() {
@@ -59,12 +53,10 @@ export default class LiveWebProxy extends LitElement
       archivePrefix: { type: String },
       proxyPrefix: { type: String },
 
-      apiPrefix: {type: String },
-
       searchMode: { type: String },
       searchResults: { type: Array },
       searchMatchType: { type: String },
-      searchIPFSLoad: { type: Boolean }
+      searchRoot: { type: String }
     };
   }
 
@@ -89,6 +81,9 @@ export default class LiveWebProxy extends LitElement
         const params = new URLSearchParams(m[2].slice("search?".length));
         this.url = params.get("url");
         this.searchMatchType = params.get("matchType") || "exact";
+        if (params.get("searchRoot")) {
+          this.searchRoot = params.get("searchRoot");
+        }
         this.doSearch();
       } else {
 
@@ -109,6 +104,16 @@ export default class LiveWebProxy extends LitElement
 
     setInterval(() => this.updateSize(), 5000);
   }
+
+  // async updated(changedProps) {
+  //   if (!this.searchMode) {
+  //     return;
+  //   }
+    
+  //   if (changedProps.has("url") || changedProps.has("searchMatchType") || changedProps.has("searchRoot")) {
+  //     await this.doSearch();
+  //   }
+  // }
 
   async updateSize() {
     if (!this.collId) {
@@ -291,10 +296,12 @@ export default class LiveWebProxy extends LitElement
           ></iframe>` : ""}
         </sl-tab-panel>
 
-
-
         <sl-tab-panel name="search" .active="${this.searchMode}">
           <sl-form @sl-submit="${this.onUpdateSearch}" class="grid grid-cols-1 gap-3 mb-4">
+            <div class="flex mb-4">
+              <sl-input class="rounded w-full" id="searchRoot" placeholder="Enter Search Root" .value="${this.searchRoot}">
+              </sl-input>
+            </div>
             <div class="flex">
               ${this.loading ? html`
               <sl-button style="width: 48px" class="ml-1" type="default" loading="default"></sl-button>
@@ -315,9 +322,6 @@ export default class LiveWebProxy extends LitElement
           </sl-form>
 
           <div class="flex flex-col">
-            <div class="mb-4">
-            <sl-switch ?checked="${this.searchIPFSLoad}" @sl-change="${this.onToggleSearchIPFSLoad}">Load directly via IPFS</sl-switch>
-            </div>
             ${this.loading ? html`
             <span class="flex items-center ml-4 mt-4">
               <sl-spinner class="text-4xl mr-4"></sl-spinner>Loading, Please wait...
@@ -325,12 +329,12 @@ export default class LiveWebProxy extends LitElement
             <div class="text-lg">${this.searchResults && this.searchResults.length} result(s)</div>
 
             ${this.searchResults && this.searchResults.map(result => html`
-            <sl-details class="mb-2 search-result" @sl-show="${(e) => this.onShowResult(result, true)}" @sl-hide="${(e) => this.onShowResult(result, false)}">
+            <sl-details class="mb-2 search-result" @sl-show="${() => this.onShowResult(result, true)}" @sl-hide="${() => this.onShowResult(result, false)}">
               <div slot="summary" class="flex flex-col">
                 <span><a target="_blank" href="https://dweb.link/ipfs/${result.cid}/#${toParams({url: result.url})}">${result.url} <sl-icon class="ml-1" name="box-arrow-up-right"></sl-icon></a></span>
-                <span class="text-gray-400">${new Date(result.key.split(" ")[1]).toLocaleString()}</span>
+                <span class="text-gray-400">${getKeyToDate(result.key)}</span>
               </div>
-              ${result.show ? html`<replay-web-page source="https://dweb.link/ipfs/${result.cid}/webarchive.wacz" url="${result.url}"></replay-web-page>` : ``}
+              ${result.show ? html`<replay-web-page source="https://dweb.link/ipfs/${result.cid}/webarchive.wacz" url="${result.url}"></replay-web-page>` : ""}
             </sl-details>
             `)}`}
           </div>
@@ -414,6 +418,7 @@ export default class LiveWebProxy extends LitElement
 
           this.lastTs = ts;
           this.lastUrl = url;
+          this.lastTitle = title;
 
           this.url = url;
         }
@@ -430,14 +435,23 @@ export default class LiveWebProxy extends LitElement
     const apiKey = apiKeyInput && apiKeyInput.value;
 
     const storage = new Web3Uploader(apiKey);
-    const cid = await storage.uploadWACZ(this.url, this.lastTs, `w/api/c/${this.collId}/dl?pages=all&format=wacz`);
+    const url = this.url;
+    const ts = this.lastTs;
+    const title = this.lastTitle;
+    const cid = await storage.uploadWACZ(url, ts, `w/api/c/${this.collId}/dl?pages=all&format=wacz`);
     this.cidLink = `https://dweb.link/ipfs/${cid}/`;
 
-    await fetch(`${this.apiPrefix}/addq`, {
-      method: "POST",
-      body: JSON.stringify({cid}),
-      headers: {"Content-Type": "application/json"}
-    });
+    if (!this.index) {
+      this.index = new URLIndexWrapper();
+      this.searchRoot = await this.index.init(this.searchRoot);
+    }
+
+    const root = await this.index.add({url, ts, title, cid});
+    if (root) {
+      this.searchRoot = root;
+    }
+
+    window.localStorage.setItem("indexRoot", this.searchRoot);
 
     this.uploading = false;
   }
@@ -458,11 +472,17 @@ export default class LiveWebProxy extends LitElement
     }
   }
 
-  onUpdateSearch() {
+  async onUpdateSearch() {
     const url = this.renderRoot.querySelector("#searchUrl").value;
     this.url = url;
 
-    this.doSearch();
+    const root = this.renderRoot.querySelector("#searchRoot").value;
+    if (root && root !== this.searchRoot) {
+      this.searchRoot = root;
+      await this.index.init(root);
+    }
+
+    await this.doSearch();
   }
 
   onChangeMatchType(event) {
@@ -472,6 +492,10 @@ export default class LiveWebProxy extends LitElement
   }
 
   async doSearch() {
+    if (this.loading) {
+      //return;
+    }
+
     if (!this.url) {
       this.url = "https://example.com/";
     }
@@ -481,50 +505,24 @@ export default class LiveWebProxy extends LitElement
     const params = new URLSearchParams();
     params.set("url", this.url);
     params.set("matchType", this.searchMatchType);
+    if (this.searchRoot) {
+      params.set("searchRoot", this.searchRoot);
+    }
 
     window.location.hash = `#search?${params}`;
 
-    if (!this.searchIPFSLoad) {
-      this.searchResults = await this.getAPIResults(params);
-    } else {
-      this.searchResults = await this.getIPFSResults({url: this.url, matchType: this.searchMatchType});
-    }
+    this.searchResults = await this.getSearchResults({url: this.url, matchType: this.searchMatchType});
 
     this.loading = false;
   }
 
-  onToggleSearchIPFSLoad(event) {
-    this.searchIPFSLoad = event.currentTarget.checked;
-    this.doSearch();
-  }
-
-  async getAPIResults(params) {
-    const resp = await fetch(`${this.apiPrefix}/query?${params}`);
-    const results = await resp.json();
-    return results;
-  }
-
-  // remote IPFS based index lookup
-  async getIPFSResults(params) {
-    const resp = await fetch(`${this.apiPrefix}/root`);
-    const {root} = await resp.json();
-
-    //const ipfs = await IPFSCreate(this.ipfsAPI);
-    if (!this.urlindex) {
-      this.ipfs = await IPFSCreate();
+  async getSearchResults(params) {
+    if (!this.index) {
+      this.index = new URLIndexWrapper();
+      await this.index.init(this.searchRoot);
     }
 
-    if (!this.urlindex) {
-      const { storage, URLIndex } = window.urlindex;
-
-      const store = new storage.IPFSReadOnlyStorage(this.ipfs);
-
-      this.urlindex = new URLIndex(store);
-
-      await this.urlindex.loadExisting(root);
-    }
-
-    return await this.urlindex.query(params);
+    return await this.index.query(params);
   }
 }
 
@@ -538,6 +536,10 @@ function toParams(obj) {
 
 function randomId() {
   return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+}
+
+function getKeyToDate(key) {
+  return new Date(tsToDateMin(key.split(" ")[1])).toLocaleString();
 }
 
 function tsToDateMin(ts) {

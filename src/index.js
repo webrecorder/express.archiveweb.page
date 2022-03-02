@@ -2,16 +2,17 @@ import "tailwindcss/tailwind.css";
 import "./shoelace";
 
 import { LitElement, html } from "lit";
-import { Web3Uploader, URLIndexWrapper } from "./web3";
+import { Web3Uploader } from "./web3";
+import { SimpleCrawler } from "./simplecrawl";
 
-export default class LiveWebProxy extends LitElement
+
+// ===========================================================================
+export default class LiveWebRecorder extends LitElement
 {
   constructor() {
     super();
     this.archivePrefix = "https://web.archive.org/web/";
     this.proxyPrefix = "https://oldweb.today/proxy/";
-
-    this.index = null;
 
     this.isLive = true;
 
@@ -20,14 +21,21 @@ export default class LiveWebProxy extends LitElement
     this.lastTitle = null;
 
     this.size = 0;
+    this.uploadProgress = 0;
+
     this.collReady = false;
     this.collAwait = null;
 
     this.hashUpdate = false;
 
-    this.searchMode = false;
-    this.searchMatchType = "exact";
-    this.searchRoot = window.localStorage.getItem("indexRoot") || null;
+    this.publicKey = null;
+
+    this.crawler = null;
+    this.crawlState = null;
+    this.crawlSameOriginOnly = false;
+    this.crawlSelector = "a[href]";
+
+    this.fullscreen = false;
   }
 
   static get properties() {
@@ -46,21 +54,32 @@ export default class LiveWebProxy extends LitElement
       collReady: { type: Boolean },
 
       collId: { type: String },
+
       size: { type: Number },
+      uploadProgress: { type: Number },
 
       cidLink: { type: String },
 
       archivePrefix: { type: String },
       proxyPrefix: { type: String },
 
-      searchMode: { type: String },
-      searchResults: { type: Array },
-      searchMatchType: { type: String },
-      searchRoot: { type: String }
+      publicKey: { type: String },
+
+      fullscreen: { type: Boolean },
+
+      crawlState: { type: Object },
+      crawlSameOriginOnly: { type: Boolean },
+      crawlSelector: { type: String },
     };
   }
 
   firstUpdated() {
+    document.addEventListener('fullscreenchange', () => {
+      this.fullscreen = !!document.fullscreenElement;
+    });
+
+    this.getPublicKey();
+
     window.addEventListener("message", (event) => this.onReplayMessage(event));
     this.initSW();
 
@@ -76,23 +95,7 @@ export default class LiveWebProxy extends LitElement
         return;
       }
 
-      if (m[2].startsWith("search?")) {
-        this.searchMode = true;
-        const params = new URLSearchParams(m[2].slice("search?".length));
-        this.url = params.get("url");
-        this.searchMatchType = params.get("matchType") || "exact";
-        if (params.get("searchRoot")) {
-          this.searchRoot = params.get("searchRoot");
-        }
-        this.doSearch();
-      } else {
-
-        this.searchMode = false;
-        this.ts = m[1] || "";
-        this.url = m[2] || "https://example.com/";
-        this.isLive = !this.ts;
-        this.initCollection();
-      }
+      this.handleHashChange(m);
     };
 
     window.addEventListener("hashchange", () => onHashChange());
@@ -105,15 +108,24 @@ export default class LiveWebProxy extends LitElement
     setInterval(() => this.updateSize(), 5000);
   }
 
-  // async updated(changedProps) {
-  //   if (!this.searchMode) {
-  //     return;
-  //   }
-    
-  //   if (changedProps.has("url") || changedProps.has("searchMatchType") || changedProps.has("searchRoot")) {
-  //     await this.doSearch();
-  //   }
-  // }
+  async getPublicKey() {
+    try {
+      const resp = await fetch("/w/api/publicKey");
+      const json = await resp.json();
+      if (json.publicKey) {
+        this.publicKey = json.publicKey;
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  }
+
+  handleHashChange(m) {
+    this.ts = m[1] || "";
+    this.url = m[2] || "https://example.com/";
+    this.isLive = !this.ts;
+    this.initCollection();
+  }
 
   async updateSize() {
     if (!this.collId) {
@@ -137,9 +149,6 @@ export default class LiveWebProxy extends LitElement
   }
 
   initCollection() {
-    if (this.searchMode) {
-      return;
-    }
     const baseUrl = new URL(window.location);
     baseUrl.hash = "";
 
@@ -174,6 +183,8 @@ export default class LiveWebProxy extends LitElement
 
     this.collReady = false;
     this.loading = true;
+    this.crawler = null;
+    this.crawlState = null;
 
     new Promise((resolve) => {
       this.collAwait = resolve;
@@ -192,12 +203,151 @@ export default class LiveWebProxy extends LitElement
     return this;
   }
 
+  renderCrawlInfo() {
+    const status = this.crawlState && this.crawlState.status || "not_started";
+
+    if (status === "not_started") {
+      return html`<sl-button @click="${this.onCrawlStart}">Crawl Links</sl-button>`;
+    }
+
+    const done = this.crawlState.count === this.crawlState.total;
+
+    let title;
+
+    switch (status) {
+      case "paused":
+        title = "Resume";
+        break;
+
+      case "running":
+        title = "Pause";
+        break;
+
+      case "done":
+        title = "Done";
+        break;
+    }
+    
+    return html`
+      <sl-button @click="${this.onCrawlPauseToggle}" ?disabled="${done}">${title}</sl-button>
+      <sl-button @click="${this.onCrawlCancel}" ?disabled="${done}">Cancel</sl-button>
+      <div class="mt-2">Status: <b>Crawled ${this.crawlState.count} of ${this.crawlState.total}</div>`;
+  }
+
+  renderControls() {
+    return html`
+    <div class="flex flex-wrap mt-2">
+    <sl-radio-group class="flex" fieldset label="Load From:">
+      <sl-radio class="mr-1" ?checked="${this.isLive}"
+      @sl-change="${() => this.isLive = true}">Live Web Page</sl-radio>
+
+      <div class="flex items-baseline">
+        <sl-radio class="mr-1" ?checked="${!this.isLive}"
+        @sl-change="${() => this.isLive = false}">Archived on:</sl-radio>
+
+        <div class="flex flex-col mt-2">
+          <sl-input id="ts" class="text-sm rounded rounded-md"
+          .value="${tsToDateMin(this.ts || "19960101")}" placeholder="YYYY-MM-DD hh:mm:ss"
+          ?disabled="${this.isLive}"></sl-input>
+          <span class="text-xs">(via Internet Archive)</span>
+        </div>
+      </div>
+    </sl-radio-group>
+
+
+    ${this.loading ? html`
+      <span class="flex items-center ml-4 mt-4">
+        <sl-spinner class="text-4xl mr-4"></sl-spinner>Loading, Please wait...
+      </span>` : html`
+
+      <sl-radio-group class="flex" fieldset label="Simple Crawling">
+        <details class="w-full mb-2">
+          <summary>Options</summary>
+          <span class="text-xs">Select: <sl-input size="small" .value="${this.crawlSelector}" @sl-change="${this.onCrawlSetSelector}"></sl-input>
+          </span>
+          <sl-checkbox size="small" ?checked="${this.crawlSameOriginOnly}"
+            @sl-change="${this.onCrawlToggleOriginOnly}"><span class="text-xs">Same-Domain Links Only</span>
+          </sl-checkbox>
+        </details>
+        ${this.renderCrawlInfo()}
+      </sl-radio-group>
+
+      <sl-radio-group class="flex" fieldset label="Archive Info">
+        <div class="mb-2">Size Loaded: <b><sl-format-bytes value="${this.size || 0}"></sl-format-bytes></b></div>
+        <sl-button type="primary" href="w/api/c/${this.collId}/dl?pages=all&format=wacz" @click="${this.onDownload}" target="_blank">
+        <sl-icon class="text-lg mr-1" name="file-earmark-arrow-down"></sl-icon>Download Archive</sl-button>
+      </sl-radio-group>
+
+      <sl-radio-group class="flex" fieldset style="max-width: 500px" label="Share">
+        <details class="w-full mb-2">
+          <summary>Options</summary>
+          <sl-input size="small" class="" id="apikey" type="text"
+          placeholder="Custom web3.storage API key"></sl-input>
+        </details>
+        <div class="mb-2">${this.cidLink ? html`
+            Sharable Link:&nbsp;
+            <a class="text-blue-800 font-bold break-all" target="_blank" href="${this.cidLink}">${this.cidLink}</a>
+            <sl-button size="small" @click="${() => this.cidLink = null}">Reset</sl-button>` : html`
+            ${this.uploading ? html`
+            <sl-button disabled type="success">
+            <sl-spinner style="--indicator-color: currentColor"></sl-spinner>
+            Uploading...</sl-button>
+            ${this.uploadProgress > 0 ? html`
+            <sl-progress-bar class="mt-2" value="${this.uploadProgress}" style="--height: 6px;"></sl-progress-bar>` : ``}
+            ` : html`
+
+            <sl-button type="success" @click="${this.onUpload}">
+            <sl-icon class="text-lg mr-1" name="share-fill"></sl-icon>
+            Share to IPFS</sl-button>
+            <div class="text-xs">(via web3.storage)</div>
+            `}
+
+          `}
+        </div>
+      </sl-radio-group>
+      `}     
+  </div>
+    `;
+  }
+
+  renderContent() {
+    return html`
+    <sl-form @sl-submit="${this.onUpdateUrlTs}" class="grid grid-cols-1 gap-3 mb-4 mt-2">
+    <div class="flex">
+      <sl-button @click="${this.onFullScreenToggle}" style="width: 48px" class="mr-1" type="default">
+        <sl-icon class="text-2xl align-middle" name="${this.fullscreen ? 'fullscreen-exit' : 'arrows-fullscreen'}"></sl-icon>
+      </sl-button>
+      ${this.loading ? html`
+      <sl-button style="width: 48px" class="ml-1" type="default" loading="default"></sl-button>
+      ` : html`
+      <sl-button @click="${this.onRefresh}" style="width: 48px" class="mr-1" type="default">
+        <sl-icon class="text-2xl align-middle" name="arrow-clockwise"></sl-icon>
+      </sl-button>
+      `}
+
+      <sl-input class="rounded w-full" id="url" placeholder="Enter URL To load" .value="${this.url}">
+      </sl-input>
+    </div>
+
+    ${this.renderControls()}
+  </sl-form>
+
+  ${this.collReady && this.iframeUrl ? html`
+  <iframe sandbox="allow-downloads allow-modals allow-orientation-lock allow-pointer-lock\
+    allow-popups allow-presentation allow-scripts allow-same-origin"
+  class="border border-solid border-black" src="${this.iframeUrl}"
+  @load="${this.onFrameLoad}" allow="autoplay 'self'; fullscreen" allowfullscreen
+  ></iframe>` : ""}
+    `
+  }
+
   render() {
     return html`
       <style>
       :root {
         --sl-color-primary-600: var(--sl-color-primary-500);
         --sl-color-success-600: var(--sl-color-success-500);
+        background-color: white;
       }
 
       replay-web-page {
@@ -209,139 +359,18 @@ export default class LiveWebProxy extends LitElement
       }
 
       </style>
+
+      ${!this.fullscreen ? html`
       <div class="flex absolute mt-1 right-0 text-xs">A project by&nbsp;<a target="_blank" href="https://webrecorder.net/"><img class="h-4" src="./assets/wrLogo.png"></div></a>
-      <div class="flex justify-center m-2 text-2xl">Archive a Single Web Page Directly in your Browser!</div>
+      <div class="flex justify-center m-2 text-2xl">ArchiveWeb.page Express</div>` : ``}
 
-      <sl-tab-group @sl-tab-show="${this.onShowTab}">
-        <sl-tab slot="nav" .active="${!this.searchMode}" panel="create">Create New</sl-tab>
-        <sl-tab slot="nav" .active="${this.searchMode}" panel="search">Search Archives</sl-tab>
-
-        <sl-tab-panel name="create" .active="${!this.searchMode}">
-          <sl-form @sl-submit="${this.onUpdateUrlTs}" class="grid grid-cols-1 gap-3 mb-4">
-            <div class="flex">
-              ${this.loading ? html`
-              <sl-button style="width: 48px" class="ml-1" type="default" loading="default"></sl-button>
-              ` : html`
-              <sl-button @click="${this.onRefresh}" style="width: 48px" class="mr-1" type="default">
-                <sl-icon class="text-2xl align-middle" name="arrow-clockwise"></sl-icon>
-              </sl-button>`}
-
-              <sl-input class="rounded w-full" id="url" placeholder="Enter URL To load" .value="${this.url}">
-              </sl-input>
-            </div>
-
-            <div class="flex flex-wrap mt-2">
-              <sl-radio-group class="flex" fieldset label="Load From:">
-                <sl-radio class="mr-1" ?checked="${this.isLive}"
-                @sl-change="${() => this.isLive = true}">Live Web Page</sl-radio>
-
-                <div class="flex items-baseline">
-                  <sl-radio class="mr-1" ?checked="${!this.isLive}"
-                  @sl-change="${() => this.isLive = false}">Archived on:</sl-radio>
-
-                  <div class="flex flex-col mt-2">
-                    <sl-input id="ts" class="text-sm rounded rounded-md"
-                    .value="${tsToDateMin(this.ts || "19960101")}" placeholder="YYYY-MM-DD hh:mm:ss"
-                    ?disabled="${this.isLive}"></sl-input>
-                    <span class="text-xs">(via Internet Archive)</span>
-                  </div>
-                </div>
-              </sl-radio-group>
-
-
-              ${this.loading ? html`
-                <span class="flex items-center ml-4 mt-4">
-                  <sl-spinner class="text-4xl mr-4"></sl-spinner>Loading, Please wait...
-                </span>` : html`
-
-                <sl-radio-group class="flex" fieldset style="max-width: 500px" label="Share to IPFS (using web3.storage)">
-                  <div class="mb-2">Sharable Link:
-                    &nbsp;${this.cidLink ? html`
-                      <a class="text-blue-800 font-bold break-all" target="_blank" href="${this.cidLink}">${this.cidLink}</a>` : html`
-
-                      ${this.uploading ? html`
-                      <sl-button disabled type="success">
-                      <sl-spinner style="--indicator-color: currentColor"></sl-spinner>
-                      Uploading...</sl-button>` : html`
-                      <sl-button type="success" @click="${this.onUpload}">
-                      <sl-icon class="text-lg mr-1" name="share-fill"></sl-icon>
-                      Share to IPFS</sl-button>
-                      `}
-
-                    `}</div>
-
-                    <details class="w-full">
-                      <summary>Advanced Options</summary>
-                      <sl-input size="small" class="" id="apikey" type="text"
-                      placeholder="Custom web3.storage API key"></sl-input>
-                    </details>
-
-                  </div>
-                </sl-radio-group>
-
-                <sl-radio-group class="flex" fieldset label="Archive Info">
-                  <sl-button type="primary" href="w/api/c/${this.collId}/dl?pages=all&format=wacz" target="_blank">
-                  <sl-icon class="text-lg mr-1" name="file-earmark-arrow-down"></sl-icon>Download Archive</sl-button>
-                  <div class="mt-2">Size Loaded: <b><sl-format-bytes value="${this.size || 0}"></sl-format-bytes></b></div>
-                </sl-radio-group>`}
-
-            </div>
-          </sl-form>
-
-          ${this.collReady && this.iframeUrl ? html`
-          <iframe sandbox="allow-downloads allow-modals allow-orientation-lock allow-pointer-lock\
-            allow-popups allow-presentation allow-scripts allow-same-origin"
-          class="border border-solid border-black" src="${this.iframeUrl}"
-          @load="${this.onFrameLoad}" allow="autoplay 'self'; fullscreen" allowfullscreen
-          ></iframe>` : ""}
-        </sl-tab-panel>
-
-        <sl-tab-panel name="search" .active="${this.searchMode}">
-          <sl-form @sl-submit="${this.onUpdateSearch}" class="grid grid-cols-1 gap-3 mb-4">
-            <div class="flex mb-4">
-              <sl-input class="rounded w-full" id="searchRoot" placeholder="Enter Search Root" .value="${this.searchRoot}">
-              </sl-input>
-            </div>
-            <div class="flex">
-              ${this.loading ? html`
-              <sl-button style="width: 48px" class="ml-1" type="default" loading="default"></sl-button>
-              ` : html`
-              <sl-button @click="${this.onUpdateSearch}" style="width: 48px" class="mr-1" type="default">
-                <sl-icon class="text-2xl align-middle" name="arrow-clockwise"></sl-icon>
-              </sl-button>`}
-
-              <sl-select class="mr-1" id="matchType" value="${this.searchMatchType}" @sl-change="${this.onChangeMatchType}">
-                <sl-menu-item value="exact">Exact</sl-menu-item>
-                <sl-menu-item value="prefix">Prefix</sl-menu-item>
-                <sl-menu-item value="raw-prefix">TLD</sl-menu-item>
-              </sl-select>
-
-              <sl-input class="rounded w-full" id="searchUrl" placeholder="Search by URL" .value="${this.url}">
-              </sl-input>
-            </div>
-          </sl-form>
-
-          <div class="flex flex-col">
-            ${this.loading ? html`
-            <span class="flex items-center ml-4 mt-4">
-              <sl-spinner class="text-4xl mr-4"></sl-spinner>Loading, Please wait...
-            </span>` : html`
-            <div class="text-lg">${this.searchResults && this.searchResults.length} result(s)</div>
-
-            ${this.searchResults && this.searchResults.map(result => html`
-            <sl-details class="mb-2 search-result" @sl-show="${() => this.onShowResult(result, true)}" @sl-hide="${() => this.onShowResult(result, false)}">
-              <div slot="summary" class="flex flex-col">
-                <span><a target="_blank" href="https://dweb.link/ipfs/${result.cid}/#${toParams({url: result.url})}">${result.url} <sl-icon class="ml-1" name="box-arrow-up-right"></sl-icon></a></span>
-                <span class="text-gray-400">${getKeyToDate(result.key)}</span>
-              </div>
-              ${result.show ? html`<replay-web-page source="https://dweb.link/ipfs/${result.cid}/webarchive.wacz" url="${result.url}"></replay-web-page>` : ""}
-            </sl-details>
-            `)}`}
-          </div>
-        </sl-tab-panel>
-
-      </sl-tab-group>
+      ${this.renderContent()}
     `;
+  }
+
+  onDownload(e) {
+    setTimeout(() => this.getPublicKey(), 1000);
+    return true;
   }
 
   onShowResult(result, value) {
@@ -398,7 +427,7 @@ export default class LiveWebProxy extends LitElement
     //this.dispatchEvent(new CustomEvent("load-finished", {detail}));
   }
 
-  onReplayMessage(event) {
+  async onReplayMessage(event) {
     const iframe = this.renderRoot.querySelector("iframe");
 
     if (iframe && event.source === iframe.contentWindow) {
@@ -412,15 +441,19 @@ export default class LiveWebProxy extends LitElement
           const req = {url, ts, title};
           //console.log(title, ts, url);
 
-          if (title && title !== url) {
-            fetch(`w/api/c/${this.collId}/pageTitle`, {method: "POST", body: JSON.stringify(req)});
-          }
-
           this.lastTs = ts;
           this.lastUrl = url;
           this.lastTitle = title;
 
           this.url = url;
+
+          if (title && title !== url) {
+            try {
+              await fetch(`w/api/c/${this.collId}/pageTitle`, {method: "POST", body: JSON.stringify(req)});
+            } catch (e) {
+              console.warn(e);
+            }
+          }
         }
 
         this.updateSize();
@@ -438,22 +471,23 @@ export default class LiveWebProxy extends LitElement
     const url = this.url;
     const ts = this.lastTs;
     const title = this.lastTitle;
-    const cid = await storage.uploadWACZ(url, ts, `w/api/c/${this.collId}/dl?pages=all&format=wacz`);
+    this.uploadProgress = 0;
+    const cid = await storage.uploadWACZ(url, ts, `w/api/c/${this.collId}/dl?pages=all&format=wacz`, (size) => {
+      this.uploadProgress = this.size ? Math.round(100.0 * size / this.size) : 0;
+    });
     this.cidLink = `https://dweb.link/ipfs/${cid}/`;
 
-    if (!this.index) {
-      this.index = new URLIndexWrapper();
-      this.searchRoot = await this.index.init(this.searchRoot);
-    }
-
-    const root = await this.index.add({url, ts, title, cid});
-    if (root) {
-      this.searchRoot = root;
-    }
-
-    window.localStorage.setItem("indexRoot", this.searchRoot);
-
     this.uploading = false;
+  }
+
+  onFullScreenToggle() {
+    if (!this.fullscreen) {
+      this.requestFullscreen();
+      this.fullscreen = true;
+    } else {
+      document.exitFullscreen();
+      this.fullscreen = false;
+    }
   }
 
   async deleteColl(collId) {
@@ -462,84 +496,42 @@ export default class LiveWebProxy extends LitElement
     }
   }
 
-  onShowTab(event) {
-    const name = event.detail.name;
-    this.searchMode = (name === "search");
-    if (this.searchMode) {
-      this.doSearch();
-    } else {
-      this.initCollection();
+  onCrawlStart() {
+    this.crawler = new SimpleCrawler(this, this.renderRoot.querySelector("iframe"));
+    this.crawler.start(this.url, this.crawlSelector, this.crawlSameOriginOnly);
+  }
+
+  onCrawlPauseToggle() {
+    if (this.crawler) {
+      this.crawler.togglePause();
     }
   }
 
-  async onUpdateSearch() {
-    const url = this.renderRoot.querySelector("#searchUrl").value;
-    this.url = url;
-
-    const root = this.renderRoot.querySelector("#searchRoot").value;
-    if (root && root !== this.searchRoot) {
-      this.searchRoot = root;
-      await this.index.init(root);
+  onCrawlCancel() {
+    if (this.crawler) {
+      this.crawler.status = "cancel";
     }
-
-    await this.doSearch();
+    this.crawler = null;
+    this.crawlState = null;
   }
 
-  onChangeMatchType(event) {
-    this.searchMatchType = event.currentTarget.value;
-
-    this.doSearch();
+  onCrawlToggleOriginOnly(e) {
+    this.crawlSameOriginOnly = e.currentTarget.checked;
+    if (this.crawlState) {
+      this.crawlState = {...this.crawlState, status: "not_started"};
+    }
   }
 
-  async doSearch() {
-    if (this.loading) {
-      //return;
+  onCrawlSetSelector(e) {
+    this.crawlSelector = e.currentTarget.value;
+    if (this.crawlState) {
+      this.crawlState = {...this.crawlState, status: "not_started"};
     }
-
-    if (!this.url) {
-      this.url = "https://example.com/";
-    }
-
-    this.loading = true;
-
-    const params = new URLSearchParams();
-    params.set("url", this.url);
-    params.set("matchType", this.searchMatchType);
-    if (this.searchRoot) {
-      params.set("searchRoot", this.searchRoot);
-    }
-
-    window.location.hash = `#search?${params}`;
-
-    this.searchResults = await this.getSearchResults({url: this.url, matchType: this.searchMatchType});
-
-    this.loading = false;
   }
-
-  async getSearchResults(params) {
-    if (!this.index) {
-      this.index = new URLIndexWrapper();
-      await this.index.init(this.searchRoot);
-    }
-
-    return await this.index.query(params);
-  }
-}
-
-function toParams(obj) {
-  const params = new URLSearchParams();
-  for (const [k, v] of Object.entries(obj)) {
-    params.set(k, v);
-  }
-  return params.toString();
 }
 
 function randomId() {
   return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
-}
-
-function getKeyToDate(key) {
-  return new Date(tsToDateMin(key.split(" ")[1])).toLocaleString();
 }
 
 function tsToDateMin(ts) {
@@ -561,4 +553,4 @@ function tsToDateMin(ts) {
   return datestr;
 }
 
-customElements.define("live-web-proxy", LiveWebProxy);
+customElements.define("live-web-proxy", LiveWebRecorder);

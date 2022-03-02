@@ -70,6 +70,11 @@ class RecProxy extends ArchiveDB
       }
     }
 
+    if (request.mode === "navigate") {
+      this.pageId = randomId();
+      this.isNew = true;
+    }
+
     const pageId = this.pageId;
 
     const referrer = request.referrer;

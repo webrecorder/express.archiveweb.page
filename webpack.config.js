@@ -8,6 +8,9 @@ const PACKAGE = require("./package.json");
 const AWP_PACKAGE = require("./node_modules/@webrecorder/archivewebpage/package.json");
 const WARCIO_PACKAGE = require("./node_modules/warcio/package.json");
 
+const DEFAULT_TOKEN = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJkaWQ6ZXRocjoweDlFN0YyNjcwQ0U3NjYyMDdiODUyNzI0NzQ3YkU1QWU5ZjIwNEIwMzIiLCJpc3MiOiJ3ZWIzLXN0b3JhZ2UiLCJpYXQiOjE2NDYyNDI5NDAzMTcsIm5hbWUiOiJhcmNoaXZld2VicGFnZS1leHByZXNzIn0.XkTEJMkygeLFi5_9BhEmaQrXV_dM0jTn-MLHlJDMgiE";
+const TOKEN = process.env.TOKEN || DEFAULT_TOKEN;
+
 module.exports = {
   target: "web",
   entry: {
@@ -40,7 +43,7 @@ module.exports = {
     new webpack.BannerPlugin("[name].js is part of Webrecorder project. Copyright (C) 2020-2021, Webrecorder Software. Licensed under the Affero General Public License v3."),
     new webpack.DefinePlugin({
       __IPFS_CORE_URL__: JSON.stringify("https://cdn.jsdelivr.net/npm/ipfs-core@0.11.1/dist/index.min.js"),
-      __TOKEN__: JSON.stringify("eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJkaWQ6ZXRocjoweDlFN0YyNjcwQ0U3NjYyMDdiODUyNzI0NzQ3YkU1QWU5ZjIwNEIwMzIiLCJpc3MiOiJ3ZWIzLXN0b3JhZ2UiLCJpYXQiOjE2MzQ0OTkwOTczNDMsIm5hbWUiOiJhcmNoaXZld2ViIn0.FYKEHoJWHLUoq8Aw3kQ_PR1bMGWcft8CRDRFTArjPGU"),
+      __TOKEN__: JSON.stringify(TOKEN),
       __DWEB_AWP_VERSION__: JSON.stringify(PACKAGE.version),
       __AWP_VERSION__: JSON.stringify(AWP_PACKAGE.version),
       __WARCIO_VERSION__: JSON.stringify(WARCIO_PACKAGE.version),
@@ -56,6 +59,10 @@ module.exports = {
         {
           from: "node_modules/@shoelace-style/shoelace/dist/assets",
           to: "shoelace/assets"
+        },
+        {
+          from: "node_modules/browsertrix-behaviors/dist/behaviors.js",
+          to: "assets/behaviors.js"
         }
       ]
     })

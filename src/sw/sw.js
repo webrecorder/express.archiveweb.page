@@ -5,6 +5,7 @@ import { tsToDate } from "@webrecorder/wabac/src/utils";
 
 import { ExtAPI } from "@webrecorder/archivewebpage/src/sw/api";
 import { RecordingCollections } from "./recproxy";
+import { Signer } from "@webrecorder/archivewebpage/src/keystore";
 
 
 // ===========================================================================
@@ -18,7 +19,8 @@ class UpdatingAPI extends ExtAPI
   get routes() {
     return {
       ...super.routes,
-      "pageTitle": ["c/:coll/pageTitle", "POST"]
+      "pageTitle": ["c/:coll/pageTitle", "POST"],
+      "publicKey": "publicKey",
     };
   }
 
@@ -26,6 +28,9 @@ class UpdatingAPI extends ExtAPI
     switch (params._route) {
     case "pageTitle":
       return await this.updatePageTitle(params.coll, request);
+
+    case "publicKey":
+      return await this.getPublicKey();
 
     default:
       return await super.handleApi(request, params, event);
@@ -46,6 +51,11 @@ class UpdatingAPI extends ExtAPI
     //await coll.store.db.init();
 
     const result = await coll.store.lookupUrl(url, ts);
+
+    if (!result) {
+      return {error: "page_not_found"};
+    }
+
     // drop to second precision for comparison
     const roundedTs = Math.floor(result.ts / 1000) * 1000;
     if (url !== result.url || ts !== roundedTs) {
@@ -61,10 +71,24 @@ class UpdatingAPI extends ExtAPI
 
     return {"added": true};
   }
+
+  async getPublicKey() {
+    const signer = new Signer();
+    const keys = await signer.loadKeys();
+    if (!keys || !keys.public) {
+      return {};
+    } else {
+      return {publicKey: keys.public};
+    }
+  }
 }
 
 export { UpdatingAPI };
 
+
+// const defaultConfig = {
+//   injectScripts: ["assets/behaviors.js"],
+// };
 
 self.sw = new SWReplay({ApiClass: UpdatingAPI, CollectionsClass: RecordingCollections});
 

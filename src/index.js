@@ -210,28 +210,32 @@ export default class LiveWebRecorder extends LitElement
       return html`<sl-button @click="${this.onCrawlStart}">Crawl Links</sl-button>`;
     }
 
-    const done = this.crawlState.count === this.crawlState.total;
-
-    let title;
-
     switch (status) {
       case "paused":
-        title = "Resume";
-        break;
+        return html`
+        <sl-icon-button class="border" @click="${this.onCrawlStep}" name="play-fill" title="Next Page" label="Next Page">
+        </sl-icon-button>
+        <sl-icon-button class="border" @click="${this.onCrawlPauseToggle}" name="skip-forward-fill" title="Run Crawl" label="Run Crawl">
+        </sl-icon-button>
+        <div class="mt-2">Status: <b>Crawled ${this.crawlState.count} of ${this.crawlState.total}</div>
+        `;
 
       case "running":
-        title = "Pause";
-        break;
+      case "stepping":
+        return html`
+        <sl-icon-button class="border" @click="${this.onCrawlPauseToggle}" name="pause" label="Pause" title="Pause">
+        </sl-icon-button>
+        <sl-icon-button class="border" @click="${this.onCrawlCancel}" name="x-lg" label="Cancel" title="Cancel">
+        </sl-icon-button>
+        <div class="mt-2">Status: <b>Crawled ${this.crawlState.count} of ${this.crawlState.total}</div>
+        `;
 
       case "done":
-        title = "Done";
-        break;
+        return html`
+        <div class="mt-2">Status: <b>Crawled ${this.crawlState.count} of ${this.crawlState.total}</div>
+        <span>Done!</span>
+        `;
     }
-    
-    return html`
-      <sl-button @click="${this.onCrawlPauseToggle}" ?disabled="${done}">${title}</sl-button>
-      <sl-button @click="${this.onCrawlCancel}" ?disabled="${done}">Cancel</sl-button>
-      <div class="mt-2">Status: <b>Crawled ${this.crawlState.count} of ${this.crawlState.total}</div>`;
   }
 
   renderControls() {
@@ -362,7 +366,9 @@ export default class LiveWebRecorder extends LitElement
 
       ${!this.fullscreen ? html`
       <div class="flex absolute mt-1 right-0 text-xs">A project by&nbsp;<a target="_blank" href="https://webrecorder.net/"><img class="h-4" src="./assets/wrLogo.png"></div></a>
-      <div class="flex justify-center m-2 text-2xl">ArchiveWeb.page Express</div>` : ``}
+      <div class="flex justify-center m-2 text-2xl">ArchiveWeb.page Express</div>
+      <div class="flex justify-center text-sm italic">Instant archiving of public web pages</div>
+      ` : ``}
 
       ${this.renderContent()}
     `;
@@ -504,6 +510,12 @@ export default class LiveWebRecorder extends LitElement
   onCrawlPauseToggle() {
     if (this.crawler) {
       this.crawler.togglePause();
+    }
+  }
+
+  onCrawlStep() {
+    if (this.crawler) {
+      this.crawler.togglePause(true);
     }
   }
 

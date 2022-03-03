@@ -95,7 +95,7 @@ export class SimpleCrawler
     }
   }
 
-  togglePause() {
+  togglePause(step = false) {
     switch (this.status) {
       case "running":
         this.status = "paused";
@@ -103,7 +103,7 @@ export class SimpleCrawler
         break;
 
       case "paused":
-        this.status = "running";
+        this.status = step ? "paused" : "running";
         this.updateState();
         this.run();
 

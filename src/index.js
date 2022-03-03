@@ -366,7 +366,7 @@ export default class LiveWebRecorder extends LitElement
 
       ${!this.fullscreen ? html`
       <div class="flex absolute mt-1 right-0 text-xs">A project by&nbsp;<a target="_blank" href="https://webrecorder.net/"><img class="h-4" src="./assets/wrLogo.png"></div></a>
-      <div class="flex justify-center m-2 text-2xl">ArchiveWeb.page Express</div>
+      <div class="flex justify-center mt-2 text-2xl">ArchiveWeb.page Express</div>
       <div class="flex justify-center text-sm italic">Instant archiving of public web pages</div>
       ` : ``}
 

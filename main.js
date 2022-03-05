@@ -3760,8 +3760,10 @@ var oi,ii;null==ni||ni(Go,Xo),(null!==(ko=globalThis.litHtmlVersions)&&void 0!==
     `}renderPublicKey(){return Fo`
     <sl-dialog @sl-hide="${()=>this.showPublicKey=!1}" label="Public Key" ?open="${this.showPublicKey}">
 
-    <p>ArchiveWeb.page Express uses a signing key to sign the WACZ files that it creates. The following public key is unique to your
-    browser profile and can be used prove that you created the WACZ files.</p>
+    <p>ArchiveWeb.page Express uses a signing key to sign the WACZ files that it creates.</p>
+    
+    <p>The following public key is unique to your
+    browser profile and can be used prove that you created each archive (WACZ file) that you download or share.</p>
 
     <sl-textarea resize="none" placeholder="No key yet. The key will be generated as soon as you download or share the first WACZ file" readonly="true" value="${this.publicKey}"></sl-textarea>
     <sl-button @click="${()=>this.showPublicKey=!1}" slot="footer" variant="primary">Close</sl-button>

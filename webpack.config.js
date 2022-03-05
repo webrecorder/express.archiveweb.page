@@ -45,7 +45,7 @@ module.exports = {
     new webpack.DefinePlugin({
       __IPFS_CORE_URL__: JSON.stringify("https://cdn.jsdelivr.net/npm/ipfs-core@0.11.1/dist/index.min.js"),
       __TOKEN__: JSON.stringify(TOKEN),
-      __DWEB_AWP_VERSION__: JSON.stringify(PACKAGE.version),
+      __AWP_EXPRESS_VERSION__: JSON.stringify(PACKAGE.version),
       __AWP_VERSION__: JSON.stringify(AWP_PACKAGE.version),
       __WARCIO_VERSION__: JSON.stringify(WARCIO_PACKAGE.version),
     }),

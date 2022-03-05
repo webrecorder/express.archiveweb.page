@@ -5,6 +5,8 @@ import { LitElement, html } from "lit";
 import { Web3Uploader } from "./web3";
 import { SimpleCrawler } from "./simplecrawl";
 
+const VERSION = __AWP_EXPRESS_VERSION__;
+
 
 // ===========================================================================
 export default class LiveWebRecorder extends LitElement
@@ -36,6 +38,8 @@ export default class LiveWebRecorder extends LitElement
     this.crawlSelector = "a[href]";
 
     this.fullscreen = false;
+    this.showAbout = false;
+    this.showPublicKey = false;
   }
 
   static get properties() {
@@ -66,6 +70,8 @@ export default class LiveWebRecorder extends LitElement
       publicKey: { type: String },
 
       fullscreen: { type: Boolean },
+      showAbout: { type: Boolean },
+      showPublicKey: { type: Boolean },
 
       crawlState: { type: Object },
       crawlSameOriginOnly: { type: Boolean },
@@ -77,6 +83,8 @@ export default class LiveWebRecorder extends LitElement
     document.addEventListener('fullscreenchange', () => {
       this.fullscreen = !!document.fullscreenElement;
     });
+
+    this.showAbout = window.location.search === "?about";
 
     this.getPublicKey();
 
@@ -303,13 +311,26 @@ export default class LiveWebRecorder extends LitElement
             <sl-button type="success" @click="${this.onUpload}">
             <sl-icon class="text-lg mr-1" name="share-fill"></sl-icon>
             Share to IPFS</sl-button>
-            <div class="text-xs">(via web3.storage)</div>
+            <div class="text-xs">(via <a target="_blank" href="https://web3.storage">web3.storage</a>)</div>
             `}
 
           `}
         </div>
       </sl-radio-group>
-      `}     
+      `}
+
+      <div class="mt-4 flex flex-row-reverse flex-auto">
+        <div class="flex flex-col">
+          <div class="mt-1 flex right-0 text-xs project-by">
+            A project by&nbsp;<a target="_blank" href="https://webrecorder.net/">
+            <img class="h-4" src="./assets/wrLogo.png"></a>
+          </div>
+          <div class="mt-2 text-right"><a class="no-underline" @click="${this.onShowAbout}" href="?about">About</a></div>
+          <div class="mt-2 text-right"><a class="no-underline" @click="${this.onShowPublicKey}" href="">Public Key</a></div>
+        </div>
+      </div>
+
+
   </div>
     `;
   }
@@ -354,23 +375,24 @@ export default class LiveWebRecorder extends LitElement
         background-color: white;
       }
 
-      replay-web-page {
-        height: 500px;
+      sl-textarea::part(textarea) {
+        background: var(--sl-color-neutral-200);
       }
 
-      .search-result::part(content) {
-        height: 500px;
+      .project-by {
+        margin-right: -0.5em
       }
 
       </style>
 
       ${!this.fullscreen ? html`
-      <div class="flex absolute mt-1 right-0 text-xs">A project by&nbsp;<a target="_blank" href="https://webrecorder.net/"><img class="h-4" src="./assets/wrLogo.png"></div></a>
       <div class="flex justify-center mt-2 text-2xl">ArchiveWeb.page Express</div>
       <div class="flex justify-center text-sm italic">Instant archiving of public web pages</div>
       ` : ``}
 
       ${this.renderContent()}
+      ${this.renderAbout()}
+      ${this.renderPublicKey()}
     `;
   }
 
@@ -521,7 +543,7 @@ export default class LiveWebRecorder extends LitElement
 
   onCrawlCancel() {
     if (this.crawler) {
-      this.crawler.status = "cancel";
+      this.crawler.status = "not_started";
     }
     this.crawler = null;
     this.crawlState = null;
@@ -539,6 +561,77 @@ export default class LiveWebRecorder extends LitElement
     if (this.crawlState) {
       this.crawlState = {...this.crawlState, status: "not_started"};
     }
+  }
+
+  onShowAbout(e) {
+   e.preventDefault();
+   this.showAbout = true;
+  }
+
+  onShowPublicKey(e) {
+    e.preventDefault();
+    this.showPublicKey = true;
+   }
+
+  renderAbout() {
+    return html`
+    <sl-dialog @sl-hide="${() => this.showAbout = false}" label="About ArchiveWeb.page Express" ?open="${this.showAbout}">
+    <p class="text-xs">v${VERSION}</p>
+    <p class="mt-2">ArchiveWeb.page Express is a streamlined browser-based archiving system. The full <a href="https://archiveweb.page">ArchiveWeb.page</a> requires either
+    an extension or desktop app, while the express version runs entirely in the browser.</a>
+
+    <h2 class="mt-6">How it Works</h2>
+    <p class="mt-2">To support loading external content, all data is routed via a proxy running as a Cloudflare Worker.</p>
+
+    <p class="mt-2">The <a target="_blank" href="https://github.com/webrecorder/wabac.js">wabac.js</a> service worker is used to rewrite and render all content in an iframe."</p>
+    
+    <p class="mt-2">Content for each page is stored in the browser, and the session is cleared on a full reload.</p>
+    <p class="mt-2">Navigation within a page are considered part of the current session.</p>
+
+    <p class="mt-2">Data can be downloaded in <a target="_blank" href="https://webrecorder.github.io/wacz-spec/">WACZ Format</a> at any time.</p>
+
+    <p class="mt-2">The WACZ file is also signed with a key generated in the browser.</p>
+
+    <p class="mt-2">When sharing to IPFS, data is stored in Filecoin using <a target="_blank" href="https://web3.storage/">web3.storage</a>
+    and shared via IPFS.</p>
+
+    <p class="mt-2">The <a target="_blank" href="https://github.com/webrecorder/express.archiveweb.page">system</a> and the <a href="https://github.com/webrecorder/wabac-cors-proxy">proxy</a> are fully open source.</p>
+
+    <h3 class="mt-6">Support</h3>
+    <p class="mt-2">If this tool is useful, considering support the Webrecorder:</p>
+    <ul class="list-disc list-inside">
+      <li>Via <a target="_blank" href="https://opencollective.com/webrecorder">OpenCollective</a></li>
+      <li>Via <a target="_blank" href="https://github.com/sponsors/webrecorder">GitHub Sponsors</a></li>
+    </ul>
+
+    <h3 class="mt-6">Privacy Policy</h3>
+    <p class="mt-2">
+    All web content is sent through a Cloudflare Worker proxy. This tool is inteded for quickly
+    archiving public data. Do not use it for anything that is sensitive.</p>
+
+    <p class="mt-2">
+    Other than the Cloudflare proxy, the archiving happens locally. Data is also shared if using the Share via IPFS option.</p>
+
+    <h4 class="mt-6">Disclaimer</h4>
+    <p class="text-xs">DISCLAIMER OF SOFTWARE WARRANTY. WEBRECORDER SOFTWARE PROVIDES THIS SOFTWARE TO YOU "AS AVAILABLE"
+    AND WITHOUT WARRANTY OF ANY KIND, EXPRESS, IMPLIED OR OTHERWISE,
+    INCLUDING WITHOUT LIMITATION ANY WARRANTY OF MERCHANTABILITY OR FITNESS FOR A PARTICULAR PURPOSE.</p>
+
+    <sl-button @click="${() => this.showAbout = false}" slot="footer" variant="primary">Close</sl-button>
+    </sl-dialog>
+    `;
+  }
+
+  renderPublicKey() {
+    return html`
+    <sl-dialog @sl-hide="${() => this.showPublicKey = false}" label="Public Key" ?open="${this.showPublicKey}">
+
+    <p>ArchiveWeb.page Express uses a signing key to sign the WACZ files that it creates. The following public key is unique to your
+    browser profile and can be used prove that you created the WACZ files.</p>
+
+    <sl-textarea resize="none" placeholder="No key yet. The key will be generated as soon as you download or share the first WACZ file" readonly="true" value="${this.publicKey}"></sl-textarea>
+    <sl-button @click="${() => this.showPublicKey = false}" slot="footer" variant="primary">Close</sl-button>
+    </sl-dialog>`;
   }
 }
 

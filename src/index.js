@@ -327,6 +327,8 @@ export default class LiveWebRecorder extends LitElement
           </div>
           <div class="mt-2 text-right"><a class="no-underline" @click="${this.onShowAbout}" href="?about">About</a></div>
           <div class="mt-2 text-right"><a class="no-underline" @click="${this.onShowPublicKey}" href="">Public Key</a></div>
+          <div class="mt-2 text-right"><a class="no-underline" target="_blank" href="https://github.com/webrecorder/express.archiveweb.page">
+          <sl-icon class="mr-1" name="github"></sl-icon>Source</a></div>
         </div>
       </div>
 

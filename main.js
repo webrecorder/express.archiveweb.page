@@ -3750,7 +3750,11 @@ var oi,ii;null==ni||ni(Go,Xo),(null!==(ko=globalThis.litHtmlVersions)&&void 0!==
     archiving public data. Do not use it for anything that is sensitive.</p>
 
     <p class="mt-2">
-    Other than the Cloudflare proxy, the archiving happens locally. Data is also shared if using the Share via IPFS option.</p>
+    Other than the Cloudflare proxy, the archiving happens locally. However, data is also shared if using the 'Share via IPFS' option.</p>
+
+    <p class="mt-2">Once the data is shared,
+    it is uploaded to a web3.storage account associated with this tool (unless you provide a custom key). web3.storage then attempts to store the data long-term
+    through Filecoin deals. Note that this data is not encrypted, and anyone maybe able to access the data given the IPFS CID. Pinning to IPFS and long-term storage is dependent on the functionality of the web3.storage service, from Protocol Labs.</p>
 
     <h4 class="mt-6">Disclaimer</h4>
     <p class="text-xs">DISCLAIMER OF SOFTWARE WARRANTY. WEBRECORDER SOFTWARE PROVIDES THIS SOFTWARE TO YOU "AS AVAILABLE"

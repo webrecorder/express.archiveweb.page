@@ -1,5 +1,5 @@
 import { ArchiveDB } from "@webrecorder/wabac/src/archivedb";
-import { LiveAccess } from "@webrecorder/wabac/src/remoteproxy";
+import { LiveProxy } from "@webrecorder/wabac/src/liveproxy";
 import { SWCollections } from "@webrecorder/wabac/src/swmain";
 import { randomId } from "@webrecorder/wabac/src/utils";
 import { postToGetUrl } from "warcio";
@@ -15,7 +15,7 @@ class RecProxy extends ArchiveDB
 
     this.collLoader = collLoader;
 
-    this.liveProxy = new LiveAccess(config, {cloneResponse: true, allowBody: true});
+    this.liveProxy = new LiveProxy(config, {cloneResponse: true, allowBody: true});
 
     this.pageId = randomId();
     this.isNew = true;

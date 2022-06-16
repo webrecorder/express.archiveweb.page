@@ -12,6 +12,8 @@ const DEFAULT_TOKEN = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJkaWQ6ZXRo
 
 const TOKEN = process.env.TOKEN || DEFAULT_TOKEN;
 
+const RWP_PREFIX = "https://cdn.jsdelivr.net/npm/replaywebpage@1.6.0/";
+
 module.exports = {
   target: "web",
   entry: {
@@ -48,6 +50,7 @@ module.exports = {
       __AWP_EXPRESS_VERSION__: JSON.stringify(PACKAGE.version),
       __AWP_VERSION__: JSON.stringify(AWP_PACKAGE.version),
       __WARCIO_VERSION__: JSON.stringify(WARCIO_PACKAGE.version),
+      __RWP_PREFIX__ : JSON.stringify(RWP_PREFIX),
     }),
     new webpack.ProvidePlugin({
       process: "process/browser.js",

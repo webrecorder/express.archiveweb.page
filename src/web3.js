@@ -3,7 +3,8 @@ import { Web3Storage } from "web3.storage";
 // eslint-disable-next-line no-undef
 const TOKEN = __TOKEN__;
 
-const RWP_PREFIX = "https://cdn.jsdelivr.net/npm/replaywebpage@1.5.7/";
+// eslint-disable-next-line no-undef
+const RWP_PREFIX = __RWP_PREFIX__;
 
 
 // ===========================================================================

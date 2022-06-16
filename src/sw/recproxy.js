@@ -15,7 +15,7 @@ class RecProxy extends ArchiveDB
 
     this.collLoader = collLoader;
 
-    this.liveProxy = new LiveProxy(config, {cloneResponse: true, allowBody: true});
+    this.liveProxy = new LiveProxy(config.extraConfig, {cloneResponse: true, allowBody: true});
 
     this.pageId = randomId();
     this.isNew = true;

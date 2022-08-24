@@ -1,12 +1,12 @@
 {
   "name": "express.archiveweb.page",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "main": "index.js",
   "license": "MIT",
   "dependencies": {
     "@shoelace-style/shoelace": "^2.0.0-beta.62",
     "@webrecorder/archivewebpage": "github:webrecorder/archiveweb.page",
-    "@webrecorder/wabac": "^2.12.0",
+    "@webrecorder/wabac": "^2.12.4",
     "autoprefixer": "^10.3.7",
     "buffer": "^6.0.3",
     "hash-wasm": "^4.9.0",

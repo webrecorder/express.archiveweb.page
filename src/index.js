@@ -505,7 +505,7 @@ export default class LiveWebRecorder extends LitElement
     const cid = await storage.uploadWACZ(url, ts, `w/api/c/${this.collId}/dl?pages=all&format=wacz`, (size) => {
       this.uploadProgress = this.size ? Math.round(100.0 * size / this.size) : 0;
     });
-    this.cidLink = `https://dweb.link/ipfs/${cid}/`;
+    this.cidLink = `https://nftstorage.link/ipfs/${cid}/`;
 
     this.uploading = false;
   }

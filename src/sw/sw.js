@@ -4,7 +4,7 @@ import { SWReplay } from "@webrecorder/wabac/src/swmain";
 import { tsToDate } from "@webrecorder/wabac/src/utils";
 
 import { ExtAPI } from "@webrecorder/archivewebpage/src/sw/api";
-import { RecordingCollections } from "./recproxy";
+import { RecordingCollections } from "@webrecorder/archivewebpage/src/sw/recproxy";
 import { Signer } from "@webrecorder/archivewebpage/src/keystore";
 
 

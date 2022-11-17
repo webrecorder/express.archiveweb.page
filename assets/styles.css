@@ -1,0 +1,42 @@
+live-web-proxy {
+  --sl-color-primary-600: var(--sl-color-primary-500);
+  --sl-color-success-600: var(--sl-color-success-500);
+  background-color: white;
+}
+
+sl-textarea::part(textarea) {
+  background: var(--sl-color-neutral-200);
+}
+
+.app {
+  margin: var(--sl-spacing-small);
+  max-width: 100%;
+  width: 1000px;
+}
+
+.app-content {
+  position: relative;
+  display: grid;
+  grid-gap: 1.0rem;
+  grid-template-columns: repeat(var(--app-content-columns, 1), 1fr);
+  grid-template-rows: max-content;
+  height: calc(100vh - var(--title-font-size) - var(--sl-spacing-small) * 3);
+}
+
+@media only screen and (min-width: 1000px) {
+  .app-content {
+    padding: 1.0rem;
+    grid-template-rows: auto;
+    height: 100%;
+  }
+
+  .app-content-2-col {
+    --app-content-columns: 2;
+  }
+
+  .app-content-2-col .app-content-header {
+    /* Reverse order of header and body */
+    order: 1;
+  }
+}
+

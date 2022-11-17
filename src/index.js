@@ -106,7 +106,7 @@ export default class LiveWebRecorder extends LitElement
 
   async getPublicKey() {
     try {
-      const resp = await fetch("/w/api/publicKey");
+      const resp = await fetch("w/api/publicKey");
       const json = await resp.json();
       if (json.publicKey) {
         this.publicKey = json.publicKey;
@@ -191,7 +191,7 @@ export default class LiveWebRecorder extends LitElement
 
     //this.dispatchEvent(new CustomEvent("load-started"));
     if (this.url && this.url.startsWith("https://twitter.com/")) {
-      this.iframeUrl = `/w/${this.collId}/mp_/${this.oembedPrefix}${this.url}`;
+      this.iframeUrl = `w/${this.collId}/mp_/${this.oembedPrefix}${this.url}`;
     } else {
       this.iframeUrl = "";
     }
@@ -387,6 +387,9 @@ export default class LiveWebRecorder extends LitElement
   }
 
   validateUrl(url) {
+    if (url.startsWith(this.oembedPrefix)) {
+      url = url.slice(this.oembedPrefix.length);
+    }
     const urlobj = new URL(url);
     if (urlobj.host !== "twitter.com") {
       return url;

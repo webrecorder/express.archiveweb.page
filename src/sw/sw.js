@@ -13,7 +13,7 @@ class UpdatingAPI extends ExtAPI
 {
   constructor(collections) {
     // eslint-disable-next-line no-undef
-    super(collections, {softwareString: `Archiveweb.page Express ${__AWP_EXPRESS_VERSION__}, using `});
+    super(collections, {softwareString: `Save Tweet Now ${__AWP_EXPRESS_VERSION__}, using `});
   }
   
   get routes() {

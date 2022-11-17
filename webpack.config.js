@@ -12,7 +12,7 @@ const DEFAULT_TOKEN = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJkaWQ6ZXRo
 
 const TOKEN = process.env.TOKEN || DEFAULT_TOKEN;
 
-const RWP_PREFIX = "https://cdn.jsdelivr.net/npm/replaywebpage@1.6.0/";
+const RWP_PREFIX = "https://cdn.jsdelivr.net/npm/replaywebpage@1.7.2/";
 
 module.exports = {
   target: "web",
@@ -45,7 +45,6 @@ module.exports = {
   plugins: [
     new webpack.BannerPlugin("[name].js is part of Webrecorder project. Copyright (C) 2020-2021, Webrecorder Software. Licensed under the Affero General Public License v3."),
     new webpack.DefinePlugin({
-      __IPFS_CORE_URL__: JSON.stringify("https://cdn.jsdelivr.net/npm/ipfs-core@0.11.1/dist/index.min.js"),
       __TOKEN__: JSON.stringify(TOKEN),
       __AWP_EXPRESS_VERSION__: JSON.stringify(PACKAGE.version),
       __AWP_VERSION__: JSON.stringify(AWP_PACKAGE.version),

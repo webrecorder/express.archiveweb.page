@@ -49,7 +49,7 @@ export class Web3Uploader
   </style>
 </head>
 <body>
-  <replay-web-page deepLink="true" noSandbox="true" url="${url}" ${ts ? `ts="${ts}"` : ""} embed="default" source="./webarchive.wacz"></replay-web-page>
+  <replay-web-page deepLink="true" url="${url}" embed="replay-with-info" src="./webarchive.wacz"></replay-web-page>
 </body>
 </html>
 `;

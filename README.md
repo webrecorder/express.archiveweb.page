@@ -1,3 +1,5 @@
+Deprecated: This repo is no longer being updated. It has been replaced with [Create Archive Now](http://create.webrecorder.net/) tool with code at [webrecorder/create-archive-now](https://github.com/webrecorder/create-archive-now)
+
 # ArchiveWeb.page Express
 
 ArchiveWeb.page Express offers high-fidelity web archiving directly in the browser!
